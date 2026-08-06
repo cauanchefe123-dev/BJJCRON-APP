@@ -38,10 +38,12 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
   const isBlob = cleanUrl.startsWith('blob:');
   const isDataUrl = cleanUrl.startsWith('data:video');
   const isFirebaseStorage = cleanUrl.includes('firebasestorage.googleapis.com');
+  const isServerUpload = cleanUrl.startsWith('/uploads/') || cleanUrl.includes('/uploads/videos/');
   const isDirectFile =
     isDataUrl ||
     isBlob ||
     isFirebaseStorage ||
+    isServerUpload ||
     /\.(mp4|webm|ogg|mov|m4v|3gp)(\?.*)?$/i.test(cleanUrl);
 
   // Extract ID / Direct Link for Native App launch

@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
 import { db } from './src/db/index.ts';
@@ -17,6 +18,12 @@ import {
   INITIAL_ACADEMY_CONFIG,
   INITIAL_USERS,
 } from './src/data/mockData.ts';
+
+// Ensure uploads/videos directory exists on server
+const uploadsDir = path.join(process.cwd(), 'uploads', 'videos');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const PORT = 3000;
 
@@ -39,7 +46,22 @@ let dynamicSmtpConfig: {
 
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+  // Serve uploads directory statically for streaming videos
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+    acceptRanges: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+      } else if (filePath.endsWith('.webm')) {
+        res.setHeader('Content-Type', 'video/webm');
+      } else if (filePath.endsWith('.mov')) {
+        res.setHeader('Content-Type', 'video/quicktime');
+      }
+    }
+  }));
 
   // CORS headers for local development and iframe preview
   app.use((req, res, next) => {
@@ -50,6 +72,36 @@ async function startServer() {
       return res.status(200).end();
     }
     next();
+  });
+
+  // ==========================================
+  // VIDEO SERVER UPLOAD ENDPOINT
+  // ==========================================
+  app.post('/api/upload-video', (req, res) => {
+    try {
+      const { filename, fileData } = req.body;
+      if (!fileData) {
+        return res.status(400).json({ error: 'Nenhum dado de vídeo fornecido.' });
+      }
+
+      const cleanName = (filename || 'video.mp4').replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueFileName = `${Date.now()}_${cleanName}`;
+      const filePath = path.join(uploadsDir, uniqueFileName);
+
+      // Extract raw base64 buffer
+      const base64Data = fileData.replace(/^data:video\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      fs.writeFileSync(filePath, buffer);
+
+      const serverUrl = `/uploads/videos/${uniqueFileName}`;
+      console.log(`[VIDEO SERVER UPLOAD] Vídeo gravado com SUCESSO no servidor BJJCRON: ${serverUrl} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+
+      return res.json({ success: true, url: serverUrl });
+    } catch (err: any) {
+      console.error('[VIDEO SERVER UPLOAD ERROR]', err?.message);
+      return res.status(500).json({ error: 'Erro ao salvar vídeo no servidor: ' + err?.message });
+    }
   });
 
   // ==========================================
