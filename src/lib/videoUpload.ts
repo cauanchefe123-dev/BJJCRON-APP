@@ -2,8 +2,8 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
 
 /**
- * Uploads video to the BJJCRON Express server or Firebase Storage.
- * Saves the video directly on the server so it can be streamed by any device/browser.
+ * Uploads video directly to the BJJCRON server using raw binary streaming and XMLHttpRequest.
+ * Provides real-time 0% to 100% progress tracking without freezing the browser thread.
  */
 export async function uploadVideoFile(
   file: File,
@@ -11,45 +11,54 @@ export async function uploadVideoFile(
 ): Promise<string> {
   if (!file) throw new Error('Nenhum arquivo de vídeo fornecido.');
 
-  // Helper to convert file to Base64
-  const convertToBase64 = (fileObj: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) || '');
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(fileObj);
-    });
-  };
-
-  // 1. First attempt: Upload to BJJCRON Server API
+  // 1. Direct High-Performance Server Stream Upload
   try {
-    if (onProgress) onProgress(15);
-    const base64Data = await convertToBase64(file);
-    if (base64Data) {
-      if (onProgress) onProgress(50);
-      const serverRes = await fetch('/api/upload-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          fileData: base64Data,
-        }),
-      });
+    const serverUrl = await new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const uploadUrl = `/api/upload-video?filename=${encodeURIComponent(file.name)}`;
 
-      if (serverRes.ok) {
-        const data = await serverRes.json();
-        if (data.url) {
-          if (onProgress) onProgress(100);
-          console.log('[VideoUpload] Vídeo salvo com sucesso no servidor:', data.url);
-          return data.url;
-        }
+      xhr.open('POST', uploadUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && e.total > 0) {
+            const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
+            onProgress(percent);
+          }
+        };
       }
-    }
-  } catch (serverErr) {
-    console.warn('[VideoUpload] Servidor BJJCRON indisponível ou falhou, tentando Storage...', serverErr);
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.url) {
+              if (onProgress) onProgress(100);
+              console.log('[VideoUpload] Vídeo enviado com sucesso para o servidor:', response.url);
+              resolve(response.url);
+              return;
+            }
+          } catch (e) {
+            console.warn('[VideoUpload] Erro ao interpretar resposta:', e);
+          }
+        }
+        reject(new Error(`Erro no servidor HTTP ${xhr.status}`));
+      };
+
+      xhr.onerror = () => reject(new Error('Falha na conexão durante upload do vídeo'));
+      xhr.ontimeout = () => reject(new Error('Tempo esgotado no upload do vídeo'));
+
+      // Send raw binary stream (no base64 overhead, high performance)
+      xhr.send(file);
+    });
+
+    if (serverUrl) return serverUrl;
+  } catch (err) {
+    console.warn('[VideoUpload] Upload direto via servidor falhou, tentando Storage...', err);
   }
 
-  // 2. Second attempt: Firebase Storage
+  // 2. Fallback: Firebase Storage
   const hasStorageBucket = Boolean(storage.app.options?.storageBucket);
   if (hasStorageBucket) {
     const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -68,17 +77,14 @@ export async function uploadVideoFile(
               onProgress(percent);
             }
           },
-          async () => {
-            const fallback = await convertToBase64(file);
-            resolve(fallback);
-          },
+          async () => resolve(URL.createObjectURL(file)),
           async () => {
             try {
               const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+              if (onProgress) onProgress(100);
               resolve(downloadUrl);
             } catch {
-              const fallback = await convertToBase64(file);
-              resolve(fallback);
+              resolve(URL.createObjectURL(file));
             }
           }
         );
@@ -88,10 +94,9 @@ export async function uploadVideoFile(
     }
   }
 
-  // 3. Fallback: Base64 Data URL
+  // 3. Fallback: Fast Local Object URL
   if (onProgress) onProgress(100);
-  const dataUrl = await convertToBase64(file);
-  return dataUrl || URL.createObjectURL(file);
+  return URL.createObjectURL(file);
 }
 
 

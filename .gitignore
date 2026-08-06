@@ -2,6 +2,11 @@ node_modules/
 build/
 dist/
 coverage/
+uploads/
+*.mp4
+*.webm
+*.mov
+*.3gp
 .DS_Store
 *.log
 .env*

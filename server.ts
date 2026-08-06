@@ -79,28 +79,38 @@ async function startServer() {
   // ==========================================
   app.post('/api/upload-video', (req, res) => {
     try {
-      const { filename, fileData } = req.body;
-      if (!fileData) {
-        return res.status(400).json({ error: 'Nenhum dado de vídeo fornecido.' });
-      }
-
-      const cleanName = (filename || 'video.mp4').replace(/[^a-zA-Z0-9.-]/g, '_');
+      const rawFilename = (req.query.filename as string) || (req.headers['x-filename'] as string) || 'video.mp4';
+      const cleanName = rawFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
       const uniqueFileName = `${Date.now()}_${cleanName}`;
       const filePath = path.join(uploadsDir, uniqueFileName);
 
-      // Extract raw base64 buffer
-      const base64Data = fileData.replace(/^data:video\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
+      // Case 1: JSON body with base64 fileData
+      if (req.body && req.body.fileData) {
+        const base64Data = req.body.fileData.replace(/^data:video\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(filePath, buffer);
+        const serverUrl = `/uploads/videos/${uniqueFileName}`;
+        console.log(`[VIDEO UPLOAD] Vídeo (Base64) salvo com SUCESSO: ${serverUrl}`);
+        return res.json({ success: true, url: serverUrl });
+      }
 
-      fs.writeFileSync(filePath, buffer);
+      // Case 2: Direct Binary Stream Upload (High Performance & Smooth Progress)
+      const writeStream = fs.createWriteStream(filePath);
+      req.pipe(writeStream);
 
-      const serverUrl = `/uploads/videos/${uniqueFileName}`;
-      console.log(`[VIDEO SERVER UPLOAD] Vídeo gravado com SUCESSO no servidor BJJCRON: ${serverUrl} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+      writeStream.on('finish', () => {
+        const serverUrl = `/uploads/videos/${uniqueFileName}`;
+        console.log(`[VIDEO STREAM UPLOAD] Vídeo salvo com SUCESSO: ${serverUrl}`);
+        return res.json({ success: true, url: serverUrl });
+      });
 
-      return res.json({ success: true, url: serverUrl });
+      writeStream.on('error', (err) => {
+        console.error('[VIDEO STREAM UPLOAD ERROR]', err);
+        return res.status(500).json({ error: 'Erro ao gravar arquivo de vídeo: ' + err.message });
+      });
     } catch (err: any) {
-      console.error('[VIDEO SERVER UPLOAD ERROR]', err?.message);
-      return res.status(500).json({ error: 'Erro ao salvar vídeo no servidor: ' + err?.message });
+      console.error('[VIDEO UPLOAD ROUTE ERROR]', err?.message);
+      return res.status(500).json({ error: 'Erro interno ao processar upload.' });
     }
   });
 
