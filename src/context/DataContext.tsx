@@ -518,7 +518,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return s;
       });
-      localStorage.setItem('bjjcron_students', JSON.stringify(updated));
+      safeSave('bjjcron_students', updated);
       return updated;
     });
     if (updatedStudent) saveToFirestore('students', updatedStudent);
@@ -557,7 +557,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteStudent = (id: string) => {
     setStudents(prev => {
       const updated = prev.filter(s => s.id !== id);
-      localStorage.setItem('bjjcron_students', JSON.stringify(updated));
+      safeSave('bjjcron_students', updated);
       return updated;
     });
     removeFromFirestore('students', id);
@@ -742,7 +742,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setTeachers(prev => {
       const updated = [newTeacher, ...prev];
-      localStorage.setItem('bjjcron_teachers', JSON.stringify(updated));
+      safeSave('bjjcron_teachers', updated);
       return updated;
     });
     saveToFirestore('teachers', newTeacher);
@@ -766,7 +766,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return t;
       });
-      localStorage.setItem('bjjcron_teachers', JSON.stringify(updated));
+      safeSave('bjjcron_teachers', updated);
       return updated;
     });
     if (updatedTeacher) saveToFirestore('teachers', updatedTeacher);
@@ -781,7 +781,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteTeacher = (id: string) => {
     setTeachers(prev => {
       const updated = prev.filter(t => t.id !== id);
-      localStorage.setItem('bjjcron_teachers', JSON.stringify(updated));
+      safeSave('bjjcron_teachers', updated);
       return updated;
     });
     removeFromFirestore('teachers', id);
@@ -797,7 +797,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setClasses(prev => {
       const updated = [...prev, newClass];
-      localStorage.setItem('bjjcron_classes', JSON.stringify(updated));
+      safeSave('bjjcron_classes', updated);
       return updated;
     });
     saveToFirestore('classes', newClass);
@@ -824,7 +824,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return c;
       });
-      localStorage.setItem('bjjcron_classes', JSON.stringify(updated));
+      safeSave('bjjcron_classes', updated);
       return updated;
     });
 
@@ -855,7 +855,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteClass = (id: string) => {
     setClasses(prev => {
       const updated = prev.filter(c => c.id !== id);
-      localStorage.setItem('bjjcron_classes', JSON.stringify(updated));
+      safeSave('bjjcron_classes', updated);
       return updated;
     });
     removeFromFirestore('classes', id);
