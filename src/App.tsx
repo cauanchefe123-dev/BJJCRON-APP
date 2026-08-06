@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 
@@ -252,6 +253,7 @@ export default function App() {
         <ErrorBoundary>
           <MainApp />
         </ErrorBoundary>
+        <SpeedInsights />
       </AuthProvider>
     </DataProvider>
   );
