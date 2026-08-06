@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Video, ExternalLink, Play, Sparkles } from 'lucide-react';
+import { X, Video, ExternalLink, Sparkles, Play } from 'lucide-react';
 
 interface TechniqueVideoModalProps {
   isOpen: boolean;
@@ -22,24 +22,30 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     if (!url) return null;
     const cleanUrl = url.trim();
 
-    // YouTube regex
+    // YouTube regex (supports shorts, watch, embed, youtu.be)
     const ytMatch = cleanUrl.match(
-      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})/
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|shorts\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
     );
     if (ytMatch && ytMatch[1]) {
-      return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
+      return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&playsinline=1&enablejsapi=1`;
     }
 
     // Vimeo regex
     const vimeoMatch = cleanUrl.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
     if (vimeoMatch && vimeoMatch[1]) {
-      return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
     }
 
     // Google Drive file
     const driveMatch = cleanUrl.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
     if (driveMatch && driveMatch[1]) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    }
+
+    // Instagram Reel / Post
+    const instaMatch = cleanUrl.match(/instagram\.com\/(?:reel|p)\/([^/?#&]+)/);
+    if (instaMatch && instaMatch[1]) {
+      return `https://www.instagram.com/p/${instaMatch[1]}/embed`;
     }
 
     return null;
@@ -49,21 +55,21 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
   const isDirectVideo =
     videoUrl?.startsWith('data:video') ||
     videoUrl?.startsWith('blob:') ||
-    videoUrl?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i);
+    videoUrl?.match(/\.(mp4|webm|ogg|mov|m4v|3gp)(\?.*)?$/i);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
-      <div className="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-3xl w-full text-white shadow-2xl overflow-hidden relative flex flex-col my-auto">
+      <div className="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-3xl w-full text-white shadow-2xl overflow-hidden relative flex flex-col my-auto max-h-[95vh]">
         
         {/* Header */}
-        <div className="p-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
               <Video className="w-5 h-5" />
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                Player do Tatame — Vídeo Integrado
+                Player do Tatame — Vídeo da Posição
               </span>
               <h3 className="font-extrabold text-sm sm:text-base text-slate-100">{title}</h3>
             </div>
@@ -79,7 +85,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {focusText && (
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-start gap-2">
               <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -90,34 +96,30 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
             </div>
           )}
 
-          {videoUrl?.startsWith('blob:') && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2 text-amber-300 text-xs">
-              <span className="text-base">💡</span>
-              <p>
-                <strong>Aviso de reprodução no Celular:</strong> Este vídeo foi selecionado diretamente de um arquivo local. Para que alunos assistam no celular ou outros aparelhos, cole um link do <strong>YouTube</strong> ou <strong>Google Drive</strong>.
-              </p>
-            </div>
-          )}
-
           {/* Video Container */}
-          <div className="bg-black rounded-xl overflow-hidden border border-slate-800 aspect-video relative flex items-center justify-center shadow-inner">
+          <div className="bg-black rounded-xl overflow-hidden border border-slate-800 aspect-video relative flex items-center justify-center shadow-inner min-h-[220px]">
             {embedUrl ? (
               <iframe
                 src={embedUrl}
                 title={`Vídeo: ${title}`}
                 className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
             ) : isDirectVideo && videoUrl ? (
               <video
                 src={videoUrl}
                 controls
-                autoPlay
                 playsInline
-                preload="metadata"
+                preload="auto"
+                controlsList="nodownload"
                 className="w-full h-full object-contain"
-              />
+              >
+                <source src={videoUrl} type="video/mp4" />
+                <source src={videoUrl} type="video/webm" />
+                <source src={videoUrl} type="video/quicktime" />
+                Seu celular/navegador não suporta a reprodução direta deste formato de vídeo.
+              </video>
             ) : videoUrl ? (
               /* Fallback iframe player attempting to load generic link or player fallback */
               <div className="w-full h-full flex flex-col">
@@ -139,7 +141,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between">
+        <div className="p-3 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between shrink-0">
           {videoUrl && (
             <a
               href={videoUrl}
@@ -148,7 +150,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
               className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Abrir em nova aba caso prefira
+              Abrir Vídeo em Nova Aba / App Externo
             </a>
           )}
           <button

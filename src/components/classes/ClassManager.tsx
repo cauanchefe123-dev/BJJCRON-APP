@@ -302,13 +302,19 @@ export const ClassManager: React.FC = () => {
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          try {
-                            const videoObjectUrl = URL.createObjectURL(file);
-                            setQuickFocusVideoUrl(videoObjectUrl);
-                          } catch (err) {
-                            console.error("Erro ao carregar vídeo:", err);
-                            alert("Não foi possível carregar o vídeo. Tente colar um link do YouTube, Drive ou Instagram.");
+                          if (file.size > 25 * 1024 * 1024) {
+                            alert("Para vídeos maiores que 25MB, recomendamos colar o link do YouTube ou Google Drive para reprodução mais rápida no celular.");
                           }
+                          const reader = new FileReader();
+                          reader.onload = event => {
+                            if (event.target?.result) {
+                              setQuickFocusVideoUrl(event.target.result as string);
+                            }
+                          };
+                          reader.onerror = () => {
+                            setQuickFocusVideoUrl(URL.createObjectURL(file));
+                          };
+                          reader.readAsDataURL(file);
                         }
                       }}
                     />
@@ -495,13 +501,19 @@ export const ClassManager: React.FC = () => {
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          try {
-                            const videoObjectUrl = URL.createObjectURL(file);
-                            setFormData({ ...formData, weeklyFocusVideoUrl: videoObjectUrl });
-                          } catch (err) {
-                            console.error("Erro ao carregar vídeo:", err);
-                            alert("Não foi possível carregar o vídeo. Tente colar um link do YouTube, Drive ou Instagram.");
+                          if (file.size > 25 * 1024 * 1024) {
+                            alert("Para vídeos maiores que 25MB, recomendamos colar o link do YouTube ou Google Drive para reprodução mais rápida no celular.");
                           }
+                          const reader = new FileReader();
+                          reader.onload = event => {
+                            if (event.target?.result) {
+                              setFormData({ ...formData, weeklyFocusVideoUrl: event.target.result as string });
+                            }
+                          };
+                          reader.onerror = () => {
+                            setFormData({ ...formData, weeklyFocusVideoUrl: URL.createObjectURL(file) });
+                          };
+                          reader.readAsDataURL(file);
                         }
                       }}
                     />
