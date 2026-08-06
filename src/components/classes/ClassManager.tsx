@@ -508,9 +508,12 @@ export const ClassManager: React.FC = () => {
                   value={formData.weeklyFocusVideoUrl}
                   onChange={e => setFormData({ ...formData, weeklyFocusVideoUrl: e.target.value })}
                   disabled={isUploadingVideo}
-                  className="w-full bg-slate-950 border border-amber-500/30 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none text-xs mb-2"
-                  placeholder="https://www.youtube.com/watch?v=... ou link direto"
+                  className="w-full bg-slate-950 border border-amber-500/30 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none text-xs mb-1"
+                  placeholder="https://www.youtube.com/watch?v=... ou link do Drive/Instagram"
                 />
+                <span className="text-[10px] text-amber-400 font-medium block mb-2">
+                  💡 Dica Safari/iOS: Cole preferencialmente links do YouTube, Instagram ou Google Drive para compatibilidade 100% no celular dos alunos.
+                </span>
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 font-bold uppercase">ou</span>
