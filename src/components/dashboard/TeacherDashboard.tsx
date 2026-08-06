@@ -358,17 +358,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 200 * 1024 * 1024) {
-                            alert('O arquivo de vídeo deve ter menos de 200MB.');
-                            return;
+                          try {
+                            const videoObjectUrl = URL.createObjectURL(file);
+                            setQuickFocusVideoUrl(videoObjectUrl);
+                          } catch (err) {
+                            console.error("Erro ao carregar vídeo:", err);
+                            alert("Não foi possível carregar o vídeo. Tente colar um link do YouTube, Drive ou Instagram.");
                           }
-                          const reader = new FileReader();
-                          reader.onload = event => {
-                            if (event.target?.result) {
-                              setQuickFocusVideoUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
                         }
                       }}
                     />

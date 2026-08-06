@@ -223,7 +223,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Safe Local Storage Persistence
   const safeSave = (key: string, val: any) => {
     try {
-      localStorage.setItem(key, JSON.stringify(val));
+      const serialized = JSON.stringify(val);
+      if (serialized.length > 4000000) { // Limit to ~4MB to prevent browser tab crash
+        console.warn(`[Storage] Dados para ${key} excedem 4MB, ignorando persistência no localStorage para evitar travamento.`);
+        return;
+      }
+      localStorage.setItem(key, serialized);
     } catch (e) {
       console.warn(`[Offline-First] Aviso ao salvar chave ${key} no localStorage (possível limite de cota atingido):`, e);
     }
