@@ -2,8 +2,8 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
 
 /**
- * Robust video handler that uploads to Firebase Storage or generates a lightweight,
- * instant Object URL. Never converts to heavy Base64 data URLs to prevent memory crashes.
+ * Uploads video to Firebase Storage or generates a persistent Base64 Data URL.
+ * Never returns local 'blob:' URLs as they fail when viewed on other devices/students' phones.
  */
 export async function uploadVideoFile(
   file: File,
@@ -11,27 +11,31 @@ export async function uploadVideoFile(
 ): Promise<string> {
   if (!file) throw new Error('Nenhum arquivo de vídeo fornecido.');
 
-  // Create lightweight Object URL fallback (instant, zero-memory-leak, safe)
-  const getFastObjectUrl = (fileObj: File): string => {
-    try {
-      return URL.createObjectURL(fileObj);
-    } catch (err) {
-      console.warn('Erro ao criar ObjectURL:', err);
-      return '';
-    }
+  // Convert file to Base64 Data URL for persistent cross-device sharing
+  const convertToBase64 = (fileObj: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve((e.target?.result as string) || '');
+      };
+      reader.onerror = () => {
+        resolve('');
+      };
+      reader.readAsDataURL(fileObj);
+    });
   };
 
   // Check if Storage bucket is configured
   const hasStorageBucket = Boolean(storage.app.options?.storageBucket);
 
   if (!hasStorageBucket) {
-    if (onProgress) {
-      onProgress(100);
-    }
-    return getFastObjectUrl(file);
+    if (onProgress) onProgress(50);
+    const dataUrl = await convertToBase64(file);
+    if (onProgress) onProgress(100);
+    return dataUrl || URL.createObjectURL(file); // Fallback
   }
 
-  // Attempt Firebase Storage upload with a 3-second timeout safeguard
+  // Attempt Firebase Storage upload with a 4-second timeout safeguard
   const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const path = `class_videos/${Date.now()}_${cleanName}`;
 
@@ -46,13 +50,14 @@ export async function uploadVideoFile(
       }
     };
 
-    // 3.5s timeout safeguard - if storage stalls or is blocked by CORS/rules, return object URL
-    const timeoutId = setTimeout(() => {
+    // 4s timeout safeguard - if storage stalls or is blocked by CORS/rules, use Base64
+    const timeoutId = setTimeout(async () => {
       if (!completed) {
-        console.warn('[VideoUpload] Firebase Storage demorou. Usando URL local otimizada.');
-        finish(getFastObjectUrl(file));
+        console.warn('[VideoUpload] Firebase Storage demorou. Convertendo para vídeo persistente.');
+        const fallbackDataUrl = await convertToBase64(file);
+        finish(fallbackDataUrl || URL.createObjectURL(file));
       }
-    }, 3500);
+    }, 4000);
 
     try {
       const storageRef = ref(storage, path);
@@ -67,10 +72,11 @@ export async function uploadVideoFile(
             if (onProgress) onProgress(percent);
           }
         },
-        (error) => {
+        async (error) => {
           clearTimeout(timeoutId);
-          console.warn('[VideoUpload] Erro ao enviar para Firebase Storage:', error);
-          finish(getFastObjectUrl(file));
+          console.warn('[VideoUpload] Erro no Firebase Storage:', error);
+          const fallbackDataUrl = await convertToBase64(file);
+          finish(fallbackDataUrl || URL.createObjectURL(file));
         },
         async () => {
           clearTimeout(timeoutId);
@@ -78,18 +84,20 @@ export async function uploadVideoFile(
             const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
             finish(downloadUrl);
           } catch (err) {
-            console.warn('[VideoUpload] Erro ao obter URL de download:', err);
-            finish(getFastObjectUrl(file));
+            console.warn('[VideoUpload] Erro ao obter URL:', err);
+            const fallbackDataUrl = await convertToBase64(file);
+            finish(fallbackDataUrl || URL.createObjectURL(file));
           }
         }
       );
     } catch (err) {
       clearTimeout(timeoutId);
-      console.warn('[VideoUpload] Falha ao inicializar Firebase Storage:', err);
-      finish(getFastObjectUrl(file));
+      console.warn('[VideoUpload] Falha ao inicializar Storage:', err);
+      convertToBase64(file).then((dUrl) => finish(dUrl || URL.createObjectURL(file)));
     }
   });
 }
+
 
 
 

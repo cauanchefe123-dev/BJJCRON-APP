@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Video, ExternalLink, Sparkles, Play, AlertTriangle, Smartphone, ShieldAlert } from 'lucide-react';
+import { X, Video, ExternalLink, Sparkles, Play, ShieldAlert } from 'lucide-react';
 
 interface TechniqueVideoModalProps {
   isOpen: boolean;
@@ -29,14 +29,6 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
 
   const cleanUrl = videoUrl?.trim() || '';
 
-  // Detect Mobile / iOS / Safari Environment
-  const isIOS = typeof navigator !== 'undefined' && (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  );
-  const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-  // Detect Video Source Types
   const isYouTube = /(?:youtube\.com|youtu\.be)/i.test(cleanUrl);
   const isGoogleDrive = /(?:drive\.google\.com|docs\.google\.com)/i.test(cleanUrl);
   const isInstagram = /instagram\.com/i.test(cleanUrl);
@@ -52,7 +44,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     isFirebaseStorage ||
     /\.(mp4|webm|ogg|mov|m4v|3gp)(\?.*)?$/i.test(cleanUrl);
 
-  // Extract ID / Direct Launch Link
+  // Extract ID / Direct Link for Native App launch
   const getDirectNativeUrl = (url: string) => {
     if (!url) return '';
 
@@ -85,7 +77,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
   const parseEmbedUrl = (url: string) => {
     if (!url) return null;
 
-    // YouTube (Shorts, Watch, Embed, Youtu.be, Mobile)
+    // YouTube
     const ytMatch = url.match(
       /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|shorts\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
     );
@@ -99,7 +91,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
       return `https://player.vimeo.com/video/${vimeoMatch[1]}?playsinline=1`;
     }
 
-    // Google Drive
+    // Google Drive (Only use preview if valid ID)
     const driveMatch = url.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)|docs\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/i);
     if (driveMatch && driveMatch[1]) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
@@ -122,13 +114,13 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
 
   const embedUrl = parseEmbedUrl(cleanUrl);
 
-  const getExternalButtonLabel = () => {
-    if (isYouTube) return 'Abrir no App do YouTube 📱';
+  const getButtonLabel = () => {
+    if (isYouTube) return 'Assistir no App do YouTube 📱';
     if (isGoogleDrive) return 'Abrir no Google Drive 📱';
     if (isInstagram) return 'Abrir no Instagram 📱';
     if (isTikTok) return 'Abrir no TikTok 📱';
     if (isVimeo) return 'Abrir no Vimeo 📱';
-    return 'Abrir no Safari / App 📱';
+    return 'Assistir Vídeo 📱';
   };
 
   const handlePlayDirectVideo = () => {
@@ -137,7 +129,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
         .play()
         .then(() => setIsPlayingDirect(true))
         .catch((err) => {
-          console.warn('Safari play error:', err);
+          console.warn('Playback error:', err);
           setVideoError(true);
         });
     }
@@ -145,7 +137,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
-      <div className="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-3xl w-full text-white shadow-2xl overflow-hidden relative flex flex-col my-auto max-h-[95vh]">
+      <div className="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-2xl w-full text-white shadow-2xl overflow-hidden relative flex flex-col my-auto max-h-[95vh]">
         
         {/* Modal Header */}
         <div className="p-3.5 sm:p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0 gap-2">
@@ -161,32 +153,17 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {directNativeUrl && (
-              <a
-                href={directNativeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95"
-                title="Abrir no app nativo do celular"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{getExternalButtonLabel()}</span>
-                <span className="sm:hidden">Abrir no Celular</span>
-              </a>
-            )}
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-              title="Fechar Player"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all shrink-0"
+            title="Fechar"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-3.5 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto flex-1">
+        <div className="p-3.5 sm:p-4 space-y-3 overflow-y-auto flex-1">
           {/* Technique Focus Badge */}
           {focusText && (
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-start gap-2">
@@ -198,69 +175,42 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
             </div>
           )}
 
-          {/* iOS Safari Special Direct Action Banner */}
-          {directNativeUrl && (isIOS || isSafari || isGoogleDrive) && (
-            <div className="bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/80 border border-amber-500/50 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
-              <div className="flex items-center gap-2.5 text-left">
-                <Smartphone className="w-5 h-5 text-amber-400 shrink-0 animate-bounce" />
-                <div>
-                  <span className="text-xs font-black text-amber-300 block">
-                    {isGoogleDrive ? 'Google Drive no Safari iOS' : 'Modo Móvel Otimizado Safari'}
-                  </span>
-                  <p className="text-[11px] text-slate-300">
-                    Para a melhor qualidade e áudio no iPhone/Safari, toque no botão para abrir diretamente no app.
-                  </p>
-                </div>
-              </div>
-              <a
-                href={directNativeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs text-center flex items-center justify-center gap-2 shadow-lg transition-all shrink-0 active:scale-95"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>{getExternalButtonLabel()}</span>
-              </a>
-            </div>
-          )}
-
-          {/* Local Blob Warning (if video is stored only in local browser memory) */}
+          {/* Warning for outdated local blob URLs */}
           {isBlob && (
-            <div className="bg-amber-950/60 border border-amber-500/50 rounded-xl p-3 text-xs text-amber-200 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-amber-400">
-                <ShieldAlert className="w-4 h-4 shrink-0" />
-                <span>Arquivo Local Temporário</span>
-              </div>
-              <p className="text-[11px] text-amber-200/90">
-                Este vídeo foi carregado temporariamente neste aparelho. Se não abrir no celular dos alunos, solicite ao professor colar o link direto do YouTube ou Google Drive na edição da turma.
+            <div className="bg-amber-950/60 border border-amber-500/40 rounded-xl p-2.5 text-xs text-amber-200 flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+              <p className="text-[11px]">
+                Vídeo gravado localmente neste navegador. Para disponibilizar aos alunos em qualquer celular, recomende ao professor colar o link do YouTube na edição da turma.
               </p>
             </div>
           )}
 
-          {/* Main Video Screen Container */}
+          {/* Main Player Box */}
           <div className="bg-black rounded-xl overflow-hidden border border-slate-800 aspect-video relative flex items-center justify-center shadow-2xl min-h-[220px]">
             {videoError ? (
-              <div className="p-6 text-center space-y-3 my-auto">
-                <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
+              /* Error fallback - Single Clean Gold Action Button */
+              <div className="p-6 text-center space-y-4 my-auto">
+                <Video className="w-12 h-12 text-amber-400 mx-auto opacity-90" />
                 <div className="space-y-1">
-                  <h4 className="font-bold text-sm text-slate-100">Exibição Bloqueada pelo Navegador Móvel</h4>
-                  <p className="text-xs text-slate-300 max-w-md mx-auto">
-                    O Safari do seu celular restringiu a reprodução interna. Toque no botão abaixo para assistir em tela cheia no app nativo.
+                  <h4 className="font-extrabold text-sm text-slate-100">Vídeo da Posição</h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Toque no botão abaixo para reproduzir diretamente no celular.
                   </p>
                 </div>
-                {directNativeUrl && (
+                {cleanUrl && (
                   <a
-                    href={directNativeUrl}
+                    href={directNativeUrl || cleanUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg active:scale-95"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all shadow-xl active:scale-95"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>{getExternalButtonLabel()}</span>
+                    <span>{getButtonLabel()}</span>
                   </a>
                 )}
               </div>
             ) : embedUrl ? (
+              /* Embed Player (YouTube, Vimeo, Drive, Insta) */
               <div className="w-full h-full relative bg-black">
                 <iframe
                   src={embedUrl}
@@ -268,17 +218,18 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                   allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
+                  onError={() => setVideoError(true)}
                 />
               </div>
             ) : isDirectFile && cleanUrl ? (
+              /* Direct HTML5 Video Player */
               <div className="w-full h-full relative flex items-center justify-center bg-black">
                 <video
                   ref={videoRef}
                   src={cleanUrl}
                   controls
                   playsInline
-                  // @ts-ignore iOS WebKit compatibility
+                  // @ts-ignore
                   webkit-playsinline="true"
                   preload="metadata"
                   controlsList="nodownload"
@@ -289,10 +240,8 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
                   <source src={cleanUrl} type="video/mp4" />
                   <source src={cleanUrl} type="video/quicktime" />
                   <source src={cleanUrl} type="video/webm" />
-                  Seu navegador não suporta a exibição direta deste formato de vídeo.
                 </video>
 
-                {/* Big Touch Play Overlay for Mobile Safari */}
                 {!isPlayingDirect && (
                   <button
                     onClick={handlePlayDirectVideo}
@@ -302,56 +251,39 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
                       <Play className="w-8 h-8 fill-slate-950 text-slate-950" />
                     </div>
                     <span className="text-xs font-black bg-slate-950/90 px-3.5 py-1.5 rounded-full text-white border border-amber-500/40 shadow-md">
-                      Toque para Iniciar o Vídeo no Celular
+                      Toque para Iniciar o Vídeo
                     </span>
                   </button>
                 )}
               </div>
             ) : cleanUrl ? (
-              /* Fallback Direct Link Player */
+              /* Direct Action Player Box */
               <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4 bg-slate-950">
                 <Video className="w-12 h-12 text-amber-400 animate-pulse" />
                 <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-slate-100">Vídeo Externo Pronto</h4>
+                  <h4 className="font-extrabold text-sm text-slate-100">Vídeo Disponível</h4>
                   <p className="text-xs text-slate-400 max-w-sm">
-                    Para assistir no Safari ou app do celular, clique no botão de abertura rápida abaixo.
+                    Clique no botão abaixo para abrir e assistir ao vídeo.
                   </p>
                 </div>
                 <a
-                  href={cleanUrl}
+                  href={directNativeUrl || cleanUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all active:scale-95"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-xl transition-all active:scale-95"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>{getExternalButtonLabel()}</span>
+                  <span>{getButtonLabel()}</span>
                 </a>
               </div>
             ) : (
+              /* No video attached */
               <div className="text-center p-8 space-y-2 text-slate-500 my-auto">
                 <Video className="w-10 h-10 mx-auto opacity-40" />
                 <p className="text-xs">Nenhum vídeo anexado para esta posição.</p>
               </div>
             )}
           </div>
-
-          {/* Quick External Link Footer Bar for All Mobile Devices */}
-          {cleanUrl && (
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="text-[11px] text-slate-400">Problemas de reprodução no Safari?</span>
-              </div>
-              <a
-                href={directNativeUrl || cleanUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-center text-xs flex items-center justify-center gap-1.5 transition-all"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>{getExternalButtonLabel()}</span>
-              </a>
-            </div>
-          )}
         </div>
 
         {/* Modal Footer */}
@@ -368,5 +300,3 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     </div>
   );
 };
-
-
