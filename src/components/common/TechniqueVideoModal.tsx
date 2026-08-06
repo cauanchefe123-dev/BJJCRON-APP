@@ -37,7 +37,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     }
 
     // Google Drive file
-    const driveMatch = cleanUrl.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+    const driveMatch = cleanUrl.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)|docs\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/);
     if (driveMatch && driveMatch[1]) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
     }
