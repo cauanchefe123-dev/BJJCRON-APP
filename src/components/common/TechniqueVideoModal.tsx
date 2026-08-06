@@ -90,6 +90,15 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
             </div>
           )}
 
+          {videoUrl?.startsWith('blob:') && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2 text-amber-300 text-xs">
+              <span className="text-base">💡</span>
+              <p>
+                <strong>Aviso de reprodução no Celular:</strong> Este vídeo foi selecionado diretamente de um arquivo local. Para que alunos assistam no celular ou outros aparelhos, cole um link do <strong>YouTube</strong> ou <strong>Google Drive</strong>.
+              </p>
+            </div>
+          )}
+
           {/* Video Container */}
           <div className="bg-black rounded-xl overflow-hidden border border-slate-800 aspect-video relative flex items-center justify-center shadow-inner">
             {embedUrl ? (
@@ -105,6 +114,8 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
                 src={videoUrl}
                 controls
                 autoPlay
+                playsInline
+                preload="metadata"
                 className="w-full h-full object-contain"
               />
             ) : videoUrl ? (
