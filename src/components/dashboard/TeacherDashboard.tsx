@@ -3,9 +3,10 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { BeltBadge } from '../belts/BeltBadge';
 import { PendingStudentApprovals } from '../students/PendingStudentApprovals';
-import { QrCode, CalendarDays, Award, Users, CheckCircle, Flame, Clock, Megaphone, Send, X, Sparkles, Target, Edit3, Video, Play } from 'lucide-react';
+import { QrCode, CalendarDays, Award, Users, CheckCircle, Flame, Clock, Megaphone, Send, X, Sparkles, Target, Edit3, Video, Play, Loader2 } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
+import { uploadVideoFile } from '../../lib/videoUpload';
 
 interface TeacherDashboardProps {
   onNavigate: (tab: string) => void;
@@ -27,6 +28,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
   const [quickFocusText, setQuickFocusText] = useState('');
   const [quickFocusVideoUrl, setQuickFocusVideoUrl] = useState('');
   const [selectedVideoClass, setSelectedVideoClass] = useState<BJJClass | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayAttendances = attendances.filter(a => a.date === todayStr);
@@ -342,28 +345,40 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
                   type="url"
                   value={quickFocusVideoUrl}
                   onChange={e => setQuickFocusVideoUrl(e.target.value)}
+                  disabled={isUploadingVideo}
                   className="w-full bg-slate-950 border border-amber-500/30 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none mb-2 text-xs"
                   placeholder="Cole um link do YouTube, Instagram, MP4 ou Google Drive"
                 />
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 font-bold uppercase">ou</span>
-                  <label className="flex-1 cursor-pointer bg-slate-950 border border-dashed border-amber-500/40 hover:border-amber-400 rounded-xl p-2 text-center text-xs text-amber-400 hover:text-amber-300 font-bold transition-all flex items-center justify-center gap-2">
-                    <Video className="w-4 h-4" />
-                    <span>Anexar Arquivo de Vídeo do Dispositivo</span>
+                  <label className={`flex-1 cursor-pointer bg-slate-950 border border-dashed border-amber-500/40 hover:border-amber-400 rounded-xl p-2 text-center text-xs text-amber-400 hover:text-amber-300 font-bold transition-all flex items-center justify-center gap-2 ${isUploadingVideo ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {isUploadingVideo ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    ) : (
+                      <Video className="w-4 h-4" />
+                    )}
+                    <span>{isUploadingVideo ? `Enviando Vídeo... (${uploadProgress}%)` : 'Anexar Arquivo de Vídeo do Dispositivo'}</span>
                     <input
                       type="file"
                       accept="video/*"
+                      disabled={isUploadingVideo}
                       className="hidden"
-                      onChange={e => {
+                      onChange={async e => {
                         const file = e.target.files?.[0];
                         if (file) {
                           try {
-                            const objectUrl = URL.createObjectURL(file);
-                            setQuickFocusVideoUrl(objectUrl);
+                            setIsUploadingVideo(true);
+                            setUploadProgress(0);
+                            const cloudUrl = await uploadVideoFile(file, (percent) => {
+                              setUploadProgress(percent);
+                            });
+                            setQuickFocusVideoUrl(cloudUrl);
                           } catch (err) {
-                            console.error("Erro ao criar URL do vídeo:", err);
-                            alert("Não foi possível carregar o arquivo. Cole o link do YouTube ou Drive.");
+                            console.error("Erro ao enviar vídeo para nuvem:", err);
+                            alert("Não foi possível processar o arquivo de vídeo. Tente colar o link do YouTube ou Drive.");
+                          } finally {
+                            setIsUploadingVideo(false);
                           }
                         }
                       }}
@@ -371,13 +386,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
                   </label>
                 </div>
 
-                {quickFocusVideoUrl && (
+                {isUploadingVideo && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-amber-400 font-bold">
+                      <span>Processando e otimizando para celulares...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                      <div
+                        className="bg-gradient-to-r from-amber-500 to-amber-400 h-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {quickFocusVideoUrl && !isUploadingVideo && (
                   <div className="mt-2 text-[11px] text-emerald-400 font-bold flex items-center justify-between bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30">
-                    <span className="truncate">✓ Vídeo anexado com sucesso</span>
+                    <span className="truncate">✓ Vídeo pronto para os alunos ({quickFocusVideoUrl.startsWith('http') ? 'Cloud/Link' : 'Anexo Local'})</span>
                     <button
                       type="button"
                       onClick={() => setQuickFocusVideoUrl('')}
-                      className="text-rose-400 hover:underline ml-2"
+                      className="text-rose-400 hover:underline ml-2 shrink-0"
                     >
                       Remover
                     </button>
