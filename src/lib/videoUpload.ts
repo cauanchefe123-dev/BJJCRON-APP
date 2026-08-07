@@ -165,7 +165,18 @@ export async function uploadVideoFile(
     }
   }
 
-  // 4. Final Fail-Safe: Instant Local Object / Data URL (Guarantees user is never stuck!)
-  console.log('[VideoUpload] Usando URL local resiliente para o vídeo.');
-  return finishProgress(URL.createObjectURL(file));
+  // 4. Persistent Base64 Data URL Fallback (Garante funcionamento em qualquer dispositivo e banco de dados)
+  console.log('[VideoUpload] Convertendo arquivo para Data URL Base64 para sincronização global.');
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      finishProgress(result);
+      resolve(result);
+    };
+    reader.onerror = () => {
+      reject(new Error('Falha ao processar arquivo de vídeo localmente.'));
+    };
+    reader.readAsDataURL(file);
+  });
 }

@@ -87,8 +87,19 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     const targetUrl = getAbsoluteOpenUrl(rawUrl);
     if (!targetUrl) return;
 
-    if (targetUrl.startsWith('blob:')) {
+    if (targetUrl.startsWith('blob:') || targetUrl.startsWith('data:video')) {
       if (videoRef.current) {
+        try {
+          if (videoRef.current.requestFullscreen) {
+            videoRef.current.requestFullscreen().catch(() => {});
+          } else if (
+            // @ts-ignore
+            videoRef.current.webkitEnterFullscreen
+          ) {
+            // @ts-ignore
+            videoRef.current.webkitEnterFullscreen();
+          }
+        } catch (e) {}
         videoRef.current.play().catch(console.warn);
       }
       return;
@@ -200,11 +211,14 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
 
           {/* Warning for local blob URLs */}
           {isBlob && (
-            <div className="bg-amber-950/60 border border-amber-500/40 rounded-xl p-2.5 text-xs text-amber-200 flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-              <p className="text-[11px]">
-                Vídeo gravado neste dispositivo. Para disponibilizar a todos os alunos, o professor pode subir o arquivo MP4 diretamente no painel.
-              </p>
+            <div className="bg-amber-950/80 border border-amber-500/50 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2.5">
+              <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-300 block mb-0.5">⚠️ Anexo de Vídeo Local (Blob)</span>
+                <p className="text-[11px] leading-relaxed">
+                  Este vídeo está em formato temporário do navegador. Para garantir que <strong>todos os alunos</strong> consigam assistir ao vídeo em qualquer celular, cole o link do <strong>YouTube, Instagram, Google Drive</strong> ou reenvie o arquivo no painel do professor.
+                </p>
+              </div>
             </div>
           )}
 
