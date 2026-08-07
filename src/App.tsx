@@ -95,6 +95,7 @@ function MainApp() {
           setActiveTab={setActiveTab}
           isOpen={isSidebarOpen}
           setIsOpen={setIsSidebarOpen}
+          onOpenEditProfile={() => currentStudent && handleOpenEditStudent(currentStudent)}
         />
 
         {/* Main Content Area */}
@@ -172,7 +173,7 @@ function MainApp() {
 
                 {activeTab === 'classes' && <ClassManager />}
 
-                {activeTab === 'financial' && (
+                {activeTab === 'financial' && (currentUser.role === 'ADMIN' || currentUser.role === 'PROFESSOR') && (
                   <PaymentManager
                     onOpenPixModal={(p) => setPixModalPayment(p)}
                   />
@@ -182,6 +183,7 @@ function MainApp() {
                   <div className="py-4">
                     <DigitalMembershipCard
                       student={selectedStudentCard || currentStudent}
+                      onOpenEditModal={() => currentStudent && handleOpenEditStudent(currentStudent)}
                     />
                   </div>
                 )}

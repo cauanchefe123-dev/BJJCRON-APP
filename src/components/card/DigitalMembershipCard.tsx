@@ -4,13 +4,14 @@ import { BeltBadge } from '../belts/BeltBadge';
 import { useData } from '../../context/DataContext';
 import { DEFAULT_BLACK_GI_AVATAR, getStudentAvatar } from '../../constants/avatar';
 import { getTrainingTimeText } from '../../utils/trainingTime';
-import { ShieldCheck, QrCode, Download, Printer, Award, Calendar, CheckCircle, Hash, Clock } from 'lucide-react';
+import { ShieldCheck, QrCode, Download, Printer, Award, Calendar, CheckCircle, Hash, Clock, Edit3 } from 'lucide-react';
 
 interface DigitalMembershipCardProps {
   student: Student;
+  onOpenEditModal?: () => void;
 }
 
-export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({ student }) => {
+export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({ student, onOpenEditModal }) => {
   const { academyConfig } = useData();
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -20,19 +21,30 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({ st
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-bold text-white">Carteirinha Digital do Atleta</h3>
           <p className="text-xs text-slate-400">Apresente seu QR Code no leitor da academia para registrar presença.</p>
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all"
-        >
-          <Printer className="w-4 h-4 text-amber-400" />
-          Imprimir / Salvar
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenEditModal && (
+            <button
+              onClick={onOpenEditModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              Editar Cadastro
+            </button>
+          )}
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all active:scale-95"
+          >
+            <Printer className="w-4 h-4 text-amber-400" />
+            Imprimir
+          </button>
+        </div>
       </div>
 
       {/* Front Card */}

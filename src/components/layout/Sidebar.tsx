@@ -19,7 +19,8 @@ import {
   Award,
   MessageSquareQuote,
   Shield,
-  GraduationCap
+  GraduationCap,
+  Edit3
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  onOpenEditProfile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   isOpen,
   setIsOpen,
+  onOpenEditProfile,
 }) => {
   const { currentUser, logout } = useAuth();
   const { academyConfig, students } = useData();
@@ -53,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'students', label: 'Alunos & Graduações', icon: Users, roles: ['ADMIN', 'PROFESSOR'] },
     { id: 'teachers', label: 'Professores & Staff', icon: UserCheck, roles: ['ADMIN', 'PROFESSOR'] },
     { id: 'classes', label: 'Turmas & Aulas', icon: CalendarDays, roles: ['ADMIN', 'PROFESSOR'] },
+    { id: 'financial', label: 'Mensalidades & Finanças', icon: CreditCard, roles: ['ADMIN', 'PROFESSOR'] },
     { id: 'card', label: 'Carteirinha Digital', icon: IdCard, roles: ['ALUNO'] },
     { id: 'journal', label: 'Diário de Treinos', icon: BookOpen, roles: ['ALUNO'] },
     { id: 'observations', label: 'Observações do Professor', icon: MessageSquareQuote, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
@@ -109,24 +113,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* User Badge Info */}
-          <div className="mb-6 p-3 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center gap-3">
-            <img
-              src={userAvatar}
-              alt={currentUser.name}
-              className="w-10 h-10 rounded-full object-cover border border-amber-400/50 bg-slate-900"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-100 truncate">{currentUser.name}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase ${
-                  currentUser.role === 'ADMIN' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                  currentUser.role === 'PROFESSOR' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                }`}>
-                  {currentUser.role === 'ADMIN' ? 'Administrador' : currentUser.role === 'PROFESSOR' ? 'Professor' : 'Aluno'}
-                </span>
+          <div className="mb-6 p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <img
+                src={userAvatar}
+                alt={currentUser.name}
+                className="w-10 h-10 rounded-full object-cover border border-amber-400/50 bg-slate-900 shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-100 truncate">{currentUser.name}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase ${
+                    currentUser.role === 'ADMIN' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                    currentUser.role === 'PROFESSOR' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  }`}>
+                    {currentUser.role === 'ADMIN' ? 'Administrador' : currentUser.role === 'PROFESSOR' ? 'Professor' : 'Aluno'}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {onOpenEditProfile && (
+              <button
+                onClick={onOpenEditProfile}
+                className="p-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/60 text-blue-300 border border-blue-500/40 transition-all text-[11px] font-bold shrink-0 flex items-center gap-1 active:scale-95"
+                title="Editar Cadastro / Perfil"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Nav List */}

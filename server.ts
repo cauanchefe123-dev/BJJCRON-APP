@@ -986,8 +986,12 @@ async function startServer() {
 
         const userConditions = [
           eq(schema.users.studentId, cleanIdStr),
+          eq(schema.users.studentId, `std-${cleanIdStr}`),
         ];
+        if (!isNaN(idNum)) userConditions.push(eq(schema.users.studentId, String(idNum)));
+        if (!isNaN(numericPart)) userConditions.push(eq(schema.users.studentId, String(numericPart)));
         if (updates.email) userConditions.push(eq(schema.users.email, updates.email.trim().toLowerCase()));
+        if (cleanIdStr.includes('@')) userConditions.push(eq(schema.users.email, cleanIdStr.toLowerCase()));
 
         await db.update(schema.users).set(userUpdates).where(or(...userConditions)).catch(() => {});
       }

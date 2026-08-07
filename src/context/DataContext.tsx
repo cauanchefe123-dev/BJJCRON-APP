@@ -321,9 +321,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Real-time Firestore Cloud Synchronization
   useEffect(() => {
     const unsubStudents = subscribeFirestoreCollection<Student>('students', (data) => {
-      setStudents(data);
-      localStorage.setItem('bjjcron_students', JSON.stringify(data));
-      window.dispatchEvent(new Event('bjjcron_students_updated'));
+      if (data && data.length > 0) {
+        setStudents(prev => {
+          const saved = localStorage.getItem('bjjcron_students');
+          let localList: Student[] = prev;
+          if (saved) { try { localList = JSON.parse(saved); } catch (e) {} }
+
+          const merged = data.map(cloudSt => {
+            const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
+            if (localSt) {
+              return {
+                ...cloudSt,
+                ...localSt,
+                name: localSt.name || cloudSt.name,
+                email: localSt.email || cloudSt.email,
+                phone: localSt.phone || cloudSt.phone,
+                photoUrl: localSt.photoUrl || cloudSt.photoUrl,
+              };
+            }
+            return cloudSt;
+          });
+
+          safeSave('bjjcron_students', merged);
+          return merged;
+        });
+        window.dispatchEvent(new Event('bjjcron_students_updated'));
+      }
     });
 
     const unsubTeachers = subscribeFirestoreCollection<Teacher>('teachers', (data) => {

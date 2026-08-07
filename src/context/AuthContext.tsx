@@ -194,8 +194,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubFirestoreUsers = subscribeFirestoreCollection<User>('users', (cloudUsers) => {
       if (cloudUsers && cloudUsers.length > 0) {
-        setUsers(cloudUsers);
-        localStorage.setItem('bjjcron_users', JSON.stringify(cloudUsers));
+        setUsers(prev => {
+          const savedStudents = localStorage.getItem('bjjcron_students');
+          const savedCurr = localStorage.getItem('bjjcron_current_user');
+          let currUser: any = null;
+          let studentsList: any[] = [];
+          if (savedCurr) { try { currUser = JSON.parse(savedCurr); } catch(e){} }
+          if (savedStudents) { try { studentsList = JSON.parse(savedStudents); } catch(e){} }
+
+          const merged = cloudUsers.map((u: User) => {
+            const stMatch = studentsList.find((s: any) => 
+              (s.id && u.studentId && s.id === u.studentId) || 
+              (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+            );
+            const isCurr = currUser && (
+              currUser.id === u.id || 
+              (currUser.email && u.email && currUser.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+            );
+
+            return {
+              ...u,
+              name: (isCurr && currUser.name) ? currUser.name : (stMatch && stMatch.name) ? stMatch.name : u.name,
+              email: (isCurr && currUser.email) ? currUser.email : (stMatch && stMatch.email) ? stMatch.email : u.email,
+              phone: (isCurr && currUser.phone) ? currUser.phone : (stMatch && stMatch.phone) ? stMatch.phone : u.phone,
+              avatarUrl: (isCurr && currUser.avatarUrl) ? currUser.avatarUrl : (stMatch && stMatch.photoUrl) ? stMatch.photoUrl : u.avatarUrl
+            };
+          });
+
+          localStorage.setItem('bjjcron_users', JSON.stringify(merged));
+          return merged;
+        });
       }
     });
 
