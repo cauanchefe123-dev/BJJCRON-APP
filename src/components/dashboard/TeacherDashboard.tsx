@@ -47,7 +47,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
       type: 'TEACHER_NOTICE',
       targetClassId: noticeData.targetClassId === 'ALL' ? undefined : noticeData.targetClassId,
       targetClassName: targetClass ? targetClass.title : 'Todas as Turmas',
-      authorName: currentUser?.name || 'Prof. Gabriel "Fera" Santos',
+      authorName: currentUser?.name || 'Professor / Mestre',
     });
 
     setIsNoticeModalOpen(false);

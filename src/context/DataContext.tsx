@@ -160,38 +160,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : [];
   });
 
-  const INITIAL_DEFAULT_NOTIFICATIONS: AppNotification[] = [
-    {
-      id: 'notif-1',
-      title: '🎯 Foco Técnico da Semana',
-      message: 'Turma Jiu-Jitsu Noturno: Passagem de Guarda Emborcada & Raspagem De La Riva.',
-      type: 'WEEKLY_FOCUS',
-      targetClassName: 'Jiu-Jitsu Noturno (Kimono)',
-      createdAt: new Date().toISOString(),
-      readBy: [],
-      authorName: 'Prof. Gabriel "Fera" Santos',
-    },
-    {
-      id: 'notif-2',
-      title: '📢 Treino Especial de Sábado',
-      message: 'Neste sábado teremos Aulão Geral de Kimono com entrega de graus. Não falte!',
-      type: 'TEACHER_NOTICE',
-      createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-      readBy: [],
-      authorName: 'Mestre Carlos Gracie',
-    },
-  ];
+  const INITIAL_DEFAULT_NOTIFICATIONS: AppNotification[] = [];
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     const saved = localStorage.getItem('bjjcron_notifications');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed: AppNotification[] = JSON.parse(saved);
+        // Clean out legacy mock notifications
+        return parsed.filter(n => n.id !== 'notif-1' && n.id !== 'notif-2' && !n.authorName?.includes('Carlos Gracie'));
       } catch {
-        return INITIAL_DEFAULT_NOTIFICATIONS;
+        return [];
       }
     }
-    return INITIAL_DEFAULT_NOTIFICATIONS;
+    return [];
   });
 
   const [activeToastNotif, setActiveToastNotif] = useState<AppNotification | null>(null);
@@ -376,6 +358,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTeacherObservations(data);
     });
 
+    const unsubNotifications = subscribeFirestoreCollection<AppNotification>('notifications', (data) => {
+      const realNotifs = data.filter(n => n.id !== 'notif-1' && n.id !== 'notif-2' && !n.authorName?.includes('Carlos Gracie'));
+      setNotifications(realNotifs);
+      safeSave('bjjcron_notifications', realNotifs);
+    });
+
     const unsubConfig = subscribeFirestoreConfig((data) => {
       if (data) {
         setAcademyConfig(prev => ({
@@ -397,6 +385,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubBeltRequests();
       unsubTrainingLogs();
       unsubTeacherObs();
+      unsubNotifications();
       unsubConfig();
     };
   }, []);
@@ -1182,6 +1171,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('bjjcron_belt_requests', JSON.stringify([]));
     localStorage.setItem('bjjcron_training_logs', JSON.stringify([]));
     localStorage.setItem('bjjcron_teacher_observations', JSON.stringify([]));
+    localStorage.setItem('bjjcron_notifications', JSON.stringify([]));
 
     setStudents([]);
     setTeachers([]);
@@ -1192,6 +1182,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBeltRequests([]);
     setTrainingLogs([]);
     setTeacherObservations([]);
+    setNotifications([]);
 
     clearAllFirestoreCollections();
     fetch('/api/clear-all-data', { method: 'POST' }).catch(() => {});
