@@ -8,7 +8,6 @@ import { getTrainingTimeText } from '../../utils/trainingTime';
 import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
-import { getStudentGraduationTarget } from '../../utils/graduation';
 
 interface StudentDashboardProps {
   onNavigate: (tab: string) => void;
@@ -31,10 +30,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
   const myAttendances = attendances.filter(a => a.studentId === currentStudent?.id);
 
   const pendingPayment = myPayments.find(p => p.status === 'PENDENTE' || p.status === 'ATRASADO');
-
-  // Calculate belt progress using custom or belt criteria target
-  const reqClassesPerStripe = getStudentGraduationTarget(currentStudent, academyConfig);
-  const progressPercent = Math.min(100, Math.round((currentStudent.classesSinceLastGraduation / reqClassesPerStripe) * 100));
 
   return (
     <div className="space-y-6">
@@ -169,30 +164,23 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
           )}
         </div>
 
-        {/* Belt Progress Gauge */}
-        <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800 space-y-2">
-          <div className="flex justify-between items-center text-xs font-bold">
-            <span className="text-slate-300 flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-amber-400" />
-              Evolução para o Próximo Grau / Faixa:
-            </span>
-            <span className="text-amber-400 font-mono">
-              {currentStudent.classesSinceLastGraduation} / {reqClassesPerStripe} treinos ({progressPercent}%)
-            </span>
+        {/* Treinos Realizados (Visão do Atleta) */}
+        <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold shrink-0">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-200 block">Treinos Registrados (Pós-Graduação)</span>
+              <p className="text-[11px] text-slate-400">Total de aulas contabilizadas desde a sua última graduação ou grau</p>
+            </div>
           </div>
-
-          <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-            <div
-              className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-700 rounded-full shadow-inner"
-              style={{ width: `${progressPercent}%` }}
-            />
+          <div className="text-right shrink-0">
+            <span className="text-xl font-black text-amber-400 font-mono block">
+              {currentStudent.classesSinceLastGraduation}
+            </span>
+            <span className="text-[10px] text-slate-500">treino(s)</span>
           </div>
-
-          <p className="text-[11px] text-slate-400">
-            {progressPercent >= 100
-              ? '🎉 Parabéns! Você cumpriu a contagem de treinos mínima para avaliação do professor.'
-              : `Faltam apenas ${reqClassesPerStripe - currentStudent.classesSinceLastGraduation} treinos para completar seu próximo objetivo.`}
-          </p>
         </div>
       </div>
 
