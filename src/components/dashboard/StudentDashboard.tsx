@@ -8,6 +8,7 @@ import { getTrainingTimeText } from '../../utils/trainingTime';
 import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
+import { getStudentGraduationTarget } from '../../utils/graduation';
 
 interface StudentDashboardProps {
   onNavigate: (tab: string) => void;
@@ -31,8 +32,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
 
   const pendingPayment = myPayments.find(p => p.status === 'PENDENTE' || p.status === 'ATRASADO');
 
-  // Calculate belt progress
-  const reqClassesPerStripe = academyConfig?.graduationCriteria?.[currentStudent.belt]?.classesPerStripe || 30;
+  // Calculate belt progress using custom or belt criteria target
+  const reqClassesPerStripe = getStudentGraduationTarget(currentStudent, academyConfig);
   const progressPercent = Math.min(100, Math.round((currentStudent.classesSinceLastGraduation / reqClassesPerStripe) * 100));
 
   return (

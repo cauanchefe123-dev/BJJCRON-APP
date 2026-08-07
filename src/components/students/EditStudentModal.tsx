@@ -67,6 +67,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         stripes: student.stripes,
         startDate: student.startDate || new Date().toISOString().split('T')[0],
         initialMonthsTrained: student.initialMonthsTrained || 0,
+        customGraduationTargetClasses: student.customGraduationTargetClasses,
         ageCategory: student.ageCategory,
         weightCategory: student.weightCategory,
         planName: student.planName,
@@ -302,6 +303,39 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <span className="font-bold text-amber-400 text-xs bg-amber-500/20 px-3 py-1 rounded-lg border border-amber-500/40">
                 {getTrainingTimeText(formData.startDate, formData.initialMonthsTrained)}
               </span>
+            </div>
+
+            {/* Meta Individual de Treinos para Graduação */}
+            <div className="sm:col-span-2 bg-slate-950 border border-amber-500/40 rounded-xl p-3.5 space-y-1.5 shadow-inner">
+              <div className="flex items-center justify-between">
+                <label className="text-amber-400 font-extrabold text-xs flex items-center gap-1.5">
+                  <span>🎯 Meta Individual de Treinos para Graduação / Grau</span>
+                </label>
+                {formData.customGraduationTargetClasses && (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                    Meta Ativa: {formData.customGraduationTargetClasses} aulas
+                  </span>
+                )}
+              </div>
+              <input
+                type="number"
+                min={1}
+                placeholder="Ex: 30 (Deixe em branco para usar o padrão da faixa)"
+                value={formData.customGraduationTargetClasses ?? ''}
+                onChange={e => setFormData({
+                  ...formData,
+                  customGraduationTargetClasses: e.target.value ? Math.max(1, parseInt(e.target.value) || 0) : undefined
+                })}
+                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none text-xs font-semibold"
+              />
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Define quantos treinos este aluno específico precisa realizar após a última graduação para ficar apto ao próximo grau/faixa.
+                {student && (
+                  <span className="block mt-1 text-emerald-400 font-bold">
+                    Treinos realizados atualmente: {student.classesSinceLastGraduation} aula(s).
+                  </span>
+                )}
+              </p>
             </div>
           </div>
 

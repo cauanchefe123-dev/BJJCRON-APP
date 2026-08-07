@@ -24,6 +24,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
     stripes: 0,
     startDate: new Date().toISOString().split('T')[0],
     initialMonthsTrained: 0,
+    customGraduationTargetClasses: undefined as number | undefined,
     weightCategory: 'MÉDIO' as WeightCategory,
     ageCategory: 'ADULTO' as AgeCategory,
     active: true,
@@ -47,6 +48,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
       stripes: 0,
       startDate: new Date().toISOString().split('T')[0],
       initialMonthsTrained: 0,
+      customGraduationTargetClasses: undefined as number | undefined,
       weightCategory: 'MÉDIO' as WeightCategory,
       ageCategory: 'ADULTO' as AgeCategory,
       active: true,
@@ -223,6 +225,26 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
               <span className="font-bold text-amber-400 text-xs bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/40">
                 {getTrainingTimeText(formData.startDate, formData.initialMonthsTrained)}
               </span>
+            </div>
+
+            <div className="sm:col-span-2 bg-slate-950 border border-amber-500/30 rounded-xl p-3 space-y-1">
+              <label className="text-amber-300 font-bold block text-xs">
+                🎯 Meta Individual de Treinos para Graduação / Grau (Opcional)
+              </label>
+              <input
+                type="number"
+                min={1}
+                placeholder="Ex: 30 (Deixe em branco para usar a meta padrão da faixa)"
+                value={formData.customGraduationTargetClasses ?? ''}
+                onChange={e => setFormData({
+                  ...formData,
+                  customGraduationTargetClasses: e.target.value ? Math.max(1, parseInt(e.target.value) || 0) : undefined
+                })}
+                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none text-xs"
+              />
+              <p className="text-[10px] text-slate-400">
+                Ao atingir ou ultrapassar essa meta de treinos, o aluno aparecerá automaticamente em "Aptos a Graduar".
+              </p>
             </div>
 
             <div>

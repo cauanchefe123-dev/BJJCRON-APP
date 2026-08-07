@@ -3,6 +3,7 @@ import { useData } from '../../context/DataContext';
 import { BeltBadge } from '../belts/BeltBadge';
 import { PendingStudentApprovals } from '../students/PendingStudentApprovals';
 import { Users, CreditCard, Award, QrCode, TrendingUp, AlertCircle, CheckCircle, Calendar, ArrowUpRight } from 'lucide-react';
+import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
 
 interface AdminDashboardProps {
   onNavigate: (tab: string) => void;
@@ -31,11 +32,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
     return acc;
   }, {} as Record<string, number>);
 
-  // Students ready for promotion (e.g. classesSinceLastGraduation >= 30)
-  const studentsReadyForGraduation = students.filter(s => {
-    const req = academyConfig?.graduationCriteria?.[s.belt]?.classesPerStripe || 30;
-    return s.classesSinceLastGraduation >= req;
-  });
+  // Students ready for promotion (using individual target or default criteria)
+  const studentsReadyForGraduation = students.filter(s =>
+    isStudentEligibleForGraduation(s, academyConfig)
+  );
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayAttendances = attendances.filter(a => a.date === todayStr);
@@ -155,26 +155,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             {studentsReadyForGraduation.length === 0 ? (
               <p className="text-xs text-slate-500 py-4 text-center">Nenhum aluno atingiu a meta esta semana.</p>
             ) : (
-              studentsReadyForGraduation.slice(0, 4).map(s => (
-                <div key={s.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img src={s.photoUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover border border-amber-400/40" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-100">{s.name}</p>
-                      <div className="mt-0.5">
-                        <BeltBadge belt={s.belt} stripes={s.stripes} size="sm" showLabel={false} />
+              studentsReadyForGraduation.slice(0, 4).map(s => {
+                const target = getStudentGraduationTarget(s, academyConfig);
+                const hasCustom = typeof s.customGraduationTargetClasses === 'number' && s.customGraduationTargetClasses > 0;
+                return (
+                  <div key={s.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={s.photoUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover border border-amber-400/40" />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-slate-100">{s.name}</p>
+                          {hasCustom && (
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-bold" title="Meta individual de treinos definida">
+                              🎯 Meta Indiv.
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5">
+                          <BeltBadge belt={s.belt} stripes={s.stripes} size="sm" showLabel={false} />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="text-right">
-                    <span className="text-xs font-bold text-emerald-400 block">
-                      {s.classesSinceLastGraduation} treinos
-                    </span>
-                    <span className="text-[10px] text-slate-500">Pronto para exame</span>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-emerald-400 block">
+                        {s.classesSinceLastGraduation} / {target} treinos
+                      </span>
+                      <span className="text-[10px] text-slate-500">Pronto para exame</span>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

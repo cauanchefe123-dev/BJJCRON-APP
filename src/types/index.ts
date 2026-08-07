@@ -110,6 +110,7 @@ export interface Student {
   initialMonthsTrained?: number; // Previous training experience in months prior to joining (e.g. 8 months)
   totalClassesAttended: number;
   classesSinceLastGraduation: number;
+  customGraduationTargetClasses?: number; // Meta individual de treinos para graduar
   weightCategory: WeightCategory;
   ageCategory: AgeCategory;
   active: boolean;
