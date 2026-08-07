@@ -518,14 +518,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify(updates),
     }).catch(() => {});
 
-    // Also update corresponding user in bjjcron_users
+    // Also update corresponding user in bjjcron_users and bjjcron_current_user
     try {
       const savedUsers = localStorage.getItem('bjjcron_users');
-      if (savedUsers) {
+      if (savedUsers && updatedStudent) {
+        const targetEmail = (updatedStudent as Student).email ? (updatedStudent as Student).email.trim().toLowerCase() : '';
         const usersList = JSON.parse(savedUsers);
         const userIdx = usersList.findIndex((u: any) => 
           (u.studentId === id) || 
-          (u.role === 'ALUNO' && updates.email && u.email && u.email.trim().toLowerCase() === updates.email.trim().toLowerCase())
+          (u.role === 'ALUNO' && targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail)
         );
         if (userIdx !== -1) {
           if (updates.name) usersList[userIdx].name = updates.name;
@@ -534,9 +535,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (updates.photoUrl) usersList[userIdx].avatarUrl = updates.photoUrl;
           if (updates.approvalStatus) usersList[userIdx].approvalStatus = updates.approvalStatus;
           localStorage.setItem('bjjcron_users', JSON.stringify(usersList));
-          window.dispatchEvent(new Event('bjjcron_users_updated'));
+          saveToFirestore('users', usersList[userIdx]);
         }
       }
+
+      // Update current user if matching
+      const savedCurr = localStorage.getItem('bjjcron_current_user');
+      if (savedCurr && updatedStudent) {
+        const curr = JSON.parse(savedCurr);
+        const targetEmail = (updatedStudent as Student).email ? (updatedStudent as Student).email.trim().toLowerCase() : '';
+        if (
+          curr.studentId === id ||
+          (curr.role === 'ALUNO' && targetEmail && curr.email && curr.email.trim().toLowerCase() === targetEmail)
+        ) {
+          if (updates.name) curr.name = updates.name;
+          if (updates.email) curr.email = updates.email.trim().toLowerCase();
+          if (updates.phone) curr.phone = updates.phone;
+          if (updates.photoUrl) curr.avatarUrl = updates.photoUrl;
+          localStorage.setItem('bjjcron_current_user', JSON.stringify(curr));
+        }
+      }
+      window.dispatchEvent(new Event('bjjcron_users_updated'));
     } catch (e) {
       console.error('Error updating user in bjjcron_users:', e);
     }

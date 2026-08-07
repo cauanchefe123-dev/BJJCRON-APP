@@ -936,7 +936,10 @@ async function startServer() {
   app.put('/api/students/:id', async (req, res) => {
     try {
       const idStr = req.params.id;
-      const idNum = parseInt(idStr, 10);
+      const cleanIdStr = idStr.trim();
+      const idNum = parseInt(cleanIdStr, 10);
+      const numericPart = parseInt(cleanIdStr.replace(/\D/g, ''), 10);
+
       const updates = req.body;
       const dbUpdates: any = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
@@ -962,18 +965,33 @@ async function startServer() {
       if (updates.lastPaymentDate !== undefined) dbUpdates.lastPaymentDate = updates.lastPaymentDate;
       if (updates.approvalStatus !== undefined) dbUpdates.approvalStatus = updates.approvalStatus;
 
-      const cleanIdStr = idStr.trim();
-      const condition = !isNaN(idNum)
-        ? or(
-            eq(schema.students.id, idNum),
-            eq(schema.students.registrationNumber, cleanIdStr),
-            eq(schema.students.email, cleanIdStr.toLowerCase())
-          )
-        : or(
-            eq(schema.students.registrationNumber, cleanIdStr),
-            eq(schema.students.email, cleanIdStr.toLowerCase())
-          );
-      await db.update(schema.students).set(dbUpdates).where(condition);
+      const conditions = [];
+      if (!isNaN(idNum)) conditions.push(eq(schema.students.id, idNum));
+      if (!isNaN(numericPart)) conditions.push(eq(schema.students.id, numericPart));
+      conditions.push(eq(schema.students.registrationNumber, cleanIdStr));
+      if (updates.email) conditions.push(eq(schema.students.email, updates.email.trim().toLowerCase()));
+
+      if (conditions.length > 0) {
+        await db.update(schema.students).set(dbUpdates).where(or(...conditions)).catch(() => {});
+      }
+
+      // Also update matching user in schema.users table
+      if (dbUpdates.name || dbUpdates.email || dbUpdates.phone || dbUpdates.photoUrl || dbUpdates.approvalStatus) {
+        const userUpdates: any = {};
+        if (dbUpdates.name) userUpdates.name = dbUpdates.name;
+        if (dbUpdates.email) userUpdates.email = dbUpdates.email.trim().toLowerCase();
+        if (dbUpdates.phone) userUpdates.phone = dbUpdates.phone;
+        if (dbUpdates.photoUrl) userUpdates.avatarUrl = dbUpdates.photoUrl;
+        if (dbUpdates.approvalStatus) userUpdates.approvalStatus = dbUpdates.approvalStatus;
+
+        const userConditions = [
+          eq(schema.users.studentId, cleanIdStr),
+        ];
+        if (updates.email) userConditions.push(eq(schema.users.email, updates.email.trim().toLowerCase()));
+
+        await db.update(schema.users).set(userUpdates).where(or(...userConditions)).catch(() => {});
+      }
+
       res.json({ success: true });
     } catch (err: any) {
       console.error('Error updating student:', err?.message);

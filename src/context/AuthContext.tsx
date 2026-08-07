@@ -78,10 +78,13 @@ const getSyncedInitialUsers = (): User[] => {
       const studentsList = JSON.parse(savedStudents);
       let changed = false;
       studentsList.forEach((std: any) => {
-        if (!std.email) return;
-        const cleanEmail = std.email.trim().toLowerCase();
-        const exists = baseUsers.some(u => u.email.trim().toLowerCase() === cleanEmail || u.studentId === std.id);
-        if (!exists) {
+        if (!std.email && !std.id) return;
+        const cleanEmail = std.email ? std.email.trim().toLowerCase() : '';
+        const existingIdx = baseUsers.findIndex(u => 
+          (cleanEmail && u.email.trim().toLowerCase() === cleanEmail) || 
+          (u.studentId && u.studentId === std.id)
+        );
+        if (existingIdx === -1) {
           baseUsers.push({
             id: `user-${std.id}`,
             name: std.name,
@@ -95,6 +98,20 @@ const getSyncedInitialUsers = (): User[] => {
             avatarUrl: (std.photoUrl && !std.photoUrl.includes('unsplash.com')) ? std.photoUrl : DEFAULT_BLACK_GI_AVATAR
           });
           changed = true;
+        } else {
+          const existingUser = baseUsers[existingIdx];
+          if (std.name && existingUser.name !== std.name) {
+            existingUser.name = std.name;
+            changed = true;
+          }
+          if (std.phone && existingUser.phone !== std.phone) {
+            existingUser.phone = std.phone;
+            changed = true;
+          }
+          if (std.photoUrl && !std.photoUrl.includes('unsplash.com') && existingUser.avatarUrl !== std.photoUrl) {
+            existingUser.avatarUrl = std.photoUrl;
+            changed = true;
+          }
         }
       });
       if (changed) {
@@ -132,10 +149,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           setUsers(prev => {
-            const isDiff = JSON.stringify(prev) !== JSON.stringify(data);
-            return isDiff ? data : prev;
+            const savedStudents = localStorage.getItem('bjjcron_students');
+            let merged = data;
+            if (savedStudents) {
+              try {
+                const studentsList = JSON.parse(savedStudents);
+                merged = data.map((u: User) => {
+                  const match = studentsList.find((s: any) => 
+                    (s.id && u.studentId && s.id === u.studentId) || 
+                    (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+                  );
+                  if (match) {
+                    return {
+                      ...u,
+                      name: match.name || u.name,
+                      phone: match.phone || u.phone,
+                      avatarUrl: (match.photoUrl && !match.photoUrl.includes('unsplash.com')) ? match.photoUrl : u.avatarUrl
+                    };
+                  }
+                  return u;
+                });
+              } catch (e) {}
+            }
+            const isDiff = JSON.stringify(prev) !== JSON.stringify(merged);
+            if (isDiff) {
+              localStorage.setItem('bjjcron_users', JSON.stringify(merged));
+            }
+            return isDiff ? merged : prev;
           });
-          localStorage.setItem('bjjcron_users', JSON.stringify(data));
         }
       }
     } catch (e) {
@@ -166,6 +207,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUsers(JSON.parse(saved));
         } catch (e) {}
       }
+      const savedCurr = localStorage.getItem('bjjcron_current_user');
+      if (savedCurr) {
+        try {
+          const curr = JSON.parse(savedCurr);
+          if (curr) setCurrentUser(curr);
+        } catch (e) {}
+      }
     };
     window.addEventListener('storage', syncFromStorage);
     window.addEventListener('bjjcron_users_updated', syncFromStorage);
@@ -189,9 +237,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (currentUser) {
-      const updatedUser = users.find(u => u.id === currentUser.id);
-      if (updatedUser && updatedUser.approvalStatus !== currentUser.approvalStatus) {
-        setCurrentUser(updatedUser);
+      const updatedUser = users.find(u => 
+        u.id === currentUser.id || 
+        (u.studentId && currentUser.studentId && u.studentId === currentUser.studentId) || 
+        (u.email && currentUser.email && u.email.trim().toLowerCase() === currentUser.email.trim().toLowerCase())
+      );
+      if (updatedUser) {
+        if (
+          updatedUser.name !== currentUser.name ||
+          updatedUser.email !== currentUser.email ||
+          updatedUser.phone !== currentUser.phone ||
+          updatedUser.avatarUrl !== currentUser.avatarUrl ||
+          updatedUser.approvalStatus !== currentUser.approvalStatus
+        ) {
+          setCurrentUser(updatedUser);
+        }
       }
     }
   }, [users]);
