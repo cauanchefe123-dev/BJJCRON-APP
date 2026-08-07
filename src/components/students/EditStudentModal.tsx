@@ -136,10 +136,10 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 text-white space-y-6 shadow-2xl relative my-8">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full text-white shadow-2xl relative max-h-[92vh] flex flex-col overflow-hidden my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="p-5 sm:p-6 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold">
               <User className="w-5 h-5" />
@@ -151,6 +151,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
           >
@@ -158,14 +159,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
           </button>
         </div>
 
-        {successMsg && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            Cadastro atualizado com sucesso!
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
+          {successMsg && (
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              Cadastro atualizado com sucesso!
+            </div>
+          )}
           {/* Photo Preview & File Upload */}
           <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
             <img
@@ -621,40 +621,42 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
             )}
           </div>
 
-          {/* Plan & Payment Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
-            <div>
-              <label className="text-slate-300 font-bold block mb-1">Plano da Academia</label>
-              <input
-                type="text"
-                value={formData.planName || ''}
-                onChange={e => setFormData({ ...formData, planName: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
-              />
-            </div>
+          {/* Plan & Payment Details (Admin/Professor only) */}
+          {!isStudentUser && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Plano da Academia</label>
+                <input
+                  type="text"
+                  value={formData.planName || ''}
+                  onChange={e => setFormData({ ...formData, planName: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
 
-            <div>
-              <label className="text-slate-300 font-bold block mb-1">Valor da Mensalidade (R$)</label>
-              <input
-                type="number"
-                value={formData.planPrice ?? 150}
-                onChange={e => setFormData({ ...formData, planPrice: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
-              />
-            </div>
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Valor da Mensalidade (R$)</label>
+                <input
+                  type="number"
+                  value={formData.planPrice ?? 150}
+                  onChange={e => setFormData({ ...formData, planPrice: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
 
-            <div>
-              <label className="text-slate-300 font-bold block mb-1">Dia do Vencimento</label>
-              <input
-                type="number"
-                min={1}
-                max={28}
-                value={formData.paymentDueDateDay ?? 10}
-                onChange={e => setFormData({ ...formData, paymentDueDateDay: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
-              />
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Dia do Vencimento</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={28}
+                  value={formData.paymentDueDateDay ?? 10}
+                  onChange={e => setFormData({ ...formData, paymentDueDateDay: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="text-slate-300 font-bold block mb-1">Observações / Histórico de Saúde</label>
@@ -668,7 +670,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="sticky bottom-0 bg-slate-900 pt-4 pb-1 border-t border-slate-800 flex items-center justify-end gap-3 z-10">
             <button
               type="button"
               onClick={onClose}
@@ -678,7 +680,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-lg flex items-center gap-2 transition-all"
+              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold shadow-lg flex items-center gap-2 transition-all active:scale-95"
             >
               <Save className="w-4 h-4" />
               Salvar Alterações
