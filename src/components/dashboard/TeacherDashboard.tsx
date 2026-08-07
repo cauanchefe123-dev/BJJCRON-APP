@@ -441,11 +441,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
                               setUploadProgress(percent);
                             });
                             setQuickFocusVideoUrl(cloudUrl);
-                          } catch (err) {
+                          } catch (err: any) {
                             console.error("Erro ao enviar vídeo para nuvem:", err);
-                            alert("Não foi possível processar o arquivo de vídeo. Tente colar o link do YouTube ou Drive.");
+                            alert(err?.message || "Não foi possível processar o arquivo de vídeo. Tente colar o link do YouTube ou Drive.");
                           } finally {
                             setIsUploadingVideo(false);
+                            setUploadProgress(0);
                           }
                         }
                       }}

@@ -1,9 +1,10 @@
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase';
+import { signInAnonymously } from 'firebase/auth';
+import { storage, auth } from './firebase';
 
 /**
  * Uploads video files directly to Google Cloud / Firebase Storage for global student access.
- * Returns a permanent, cross-platform public HTTPS URL.
+ * Implements anonymous authentication, stagnation detection, and server fallback so progress never freezes.
  */
 export async function uploadVideoFile(
   file: File,
@@ -16,38 +17,68 @@ export async function uploadVideoFile(
     return url;
   };
 
+  if (onProgress) onProgress(5);
+
   const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const storagePath = `class_videos/${Date.now()}_${cleanName}`;
 
-  // 1. PRIMARY STRATEGY: Firebase Cloud Storage (Google Cloud Storage)
+  // Ensure Firebase Auth is signed in anonymously before attempting Storage upload
+  if (auth && !auth.currentUser) {
+    try {
+      await signInAnonymously(auth);
+    } catch (e) {
+      console.warn('[VideoUpload] Falha ao autenticar anonimamente no Firebase:', e);
+    }
+  }
+
+  // 1. PRIMARY STRATEGY: Firebase Cloud Storage (Google Cloud)
   if (storage) {
     try {
-      console.log('[VideoUpload] Enviando para a nuvem do Firebase Storage...', storagePath);
+      console.log('[VideoUpload] Iniciando upload no Firebase Storage...', storagePath);
       const storageRef = ref(storage, storagePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const uploadTask = uploadBytesResumable(storageRef, file, {
+        contentType: file.type || 'video/mp4',
+      });
 
       const downloadUrl = await new Promise<string>((resolve, reject) => {
-        // 10 minutes timeout for larger videos on mobile network
-        const timeoutTimer = setTimeout(() => {
+        let hasTransferredBytes = false;
+
+        // Stagnation guard: If 6 seconds pass with 0 bytes transferred, cancel and fallback
+        const stagnationTimer = setTimeout(() => {
+          if (!hasTransferredBytes) {
+            console.warn('[VideoUpload] Stagnation detectada (0% após 6s). Cancelando Firebase Storage...');
+            uploadTask.cancel();
+            reject(new Error('Firebase Storage estagnado em 0%'));
+          }
+        }, 6000);
+
+        // Overall safety timeout (5 minutes)
+        const maxTimeout = setTimeout(() => {
           uploadTask.cancel();
           reject(new Error('Tempo limite excedido no envio para o Firebase Storage.'));
-        }, 600000);
+        }, 300000);
 
         uploadTask.on(
           'state_changed',
           (snapshot) => {
+            if (snapshot.bytesTransferred > 0) {
+              hasTransferredBytes = true;
+              clearTimeout(stagnationTimer);
+            }
             if (snapshot.totalBytes > 0 && onProgress) {
-              const percent = Math.min(99, Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
+              const percent = Math.min(99, Math.max(5, Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)));
               onProgress(percent);
             }
           },
           (error) => {
-            clearTimeout(timeoutTimer);
+            clearTimeout(stagnationTimer);
+            clearTimeout(maxTimeout);
             console.warn('[VideoUpload] Erro no Firebase Storage:', error);
             reject(error);
           },
           async () => {
-            clearTimeout(timeoutTimer);
+            clearTimeout(stagnationTimer);
+            clearTimeout(maxTimeout);
             try {
               const url = await getDownloadURL(uploadTask.snapshot.ref);
               console.log('[VideoUpload] Vídeo salvo na nuvem com SUCESSO:', url);
@@ -69,19 +100,19 @@ export async function uploadVideoFile(
 
   // 2. SECONDARY STRATEGY: Direct Server Backend Endpoint (/api/upload-video)
   try {
-    console.log('[VideoUpload] Tentando upload no servidor da aplicação...');
+    console.log('[VideoUpload] Tentando upload no servidor backend...');
     const serverUrl = await new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const uploadUrl = `/api/upload-video?filename=${encodeURIComponent(file.name)}`;
 
       xhr.open('POST', uploadUrl, true);
       xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
-      xhr.timeout = 180000; // 3 minutes
+      xhr.timeout = 120000; // 2 minutes
 
       if (xhr.upload && onProgress) {
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable && e.total > 0) {
-            const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
+            const percent = Math.min(99, Math.max(5, Math.round((e.loaded / e.total) * 100)));
             onProgress(percent);
           }
         };
@@ -92,7 +123,6 @@ export async function uploadVideoFile(
           try {
             const response = JSON.parse(xhr.responseText);
             if (response.url) {
-              // Convert relative path to absolute URL if needed
               const fullUrl = response.url.startsWith('http')
                 ? response.url
                 : `${window.location.origin}${response.url}`;
@@ -114,26 +144,36 @@ export async function uploadVideoFile(
       return finishProgress(serverUrl);
     }
   } catch (serverErr) {
-    console.warn('[VideoUpload] Servidor da aplicação indisponível para upload:', serverErr);
+    console.warn('[VideoUpload] Servidor backend indisponível para upload:', serverErr);
   }
 
-  // 3. TERTIARY STRATEGY: Base64 Data URL (only for small video files < 2MB to fit in database)
-  if (file.size <= 2 * 1024 * 1024) {
-    console.log('[VideoUpload] Convertendo vídeo pequeno para Data URL Base64...');
+  // 3. TERTIARY STRATEGY: Base64 Data URL (for small/medium videos <= 3MB)
+  if (file.size <= 3 * 1024 * 1024) {
+    console.log('[VideoUpload] Processando arquivo local em formato Data URL...');
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
+
+      reader.onprogress = (e) => {
+        if (e.lengthComputable && e.total > 0 && onProgress) {
+          const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
+          onProgress(percent);
+        }
+      };
+
       reader.onload = () => {
         const result = reader.result as string;
         finishProgress(result);
         resolve(result);
       };
+
       reader.onerror = () => reject(new Error('Falha ao processar arquivo de vídeo.'));
       reader.readAsDataURL(file);
     });
   }
 
-  // If all cloud methods failed and file is too large for Base64 in Firestore
+  // If all cloud methods failed and file is too large for Firestore string limit
+  const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
   throw new Error(
-    'Não foi possível salvar o vídeo na nuvem. Verifique sua conexão com a internet ou cole o link direto do YouTube/Instagram/Drive.'
+    `O arquivo de vídeo selecionado (${fileSizeMB} MB) não pôde ser enviado para a nuvem. Para garantir que todos os alunos consigam assistir sem travar, cole o link do YouTube, Instagram ou Google Drive.`
   );
 }

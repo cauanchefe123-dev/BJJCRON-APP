@@ -316,11 +316,12 @@ export const ClassManager: React.FC = () => {
                             setUploadProgress(0);
                             const cloudUrl = await uploadVideoFile(file, (p) => setUploadProgress(p));
                             setQuickFocusVideoUrl(cloudUrl);
-                          } catch (err) {
-                            console.error("Erro ao enviar vídeo:", err);
-                            alert("Não foi possível processar o vídeo. Cole o link do YouTube ou Drive.");
+                          } catch (err: any) {
+                            console.error("Erro ao enviar vídeo (Quick):", err);
+                            alert(err?.message || "Não foi possível processar o vídeo. Cole o link do YouTube ou Drive.");
                           } finally {
                             setIsUploadingVideo(false);
+                            setUploadProgress(0);
                           }
                         }
                       }}
@@ -537,11 +538,12 @@ export const ClassManager: React.FC = () => {
                             setUploadProgress(0);
                             const cloudUrl = await uploadVideoFile(file, (p) => setUploadProgress(p));
                             setFormData({ ...formData, weeklyFocusVideoUrl: cloudUrl });
-                          } catch (err) {
-                            console.error("Erro ao enviar vídeo:", err);
-                            alert("Não foi possível processar o vídeo. Cole o link do YouTube ou Drive.");
+                          } catch (err: any) {
+                            console.error("Erro ao enviar vídeo (Form):", err);
+                            alert(err?.message || "Não foi possível processar o vídeo. Cole o link do YouTube ou Drive.");
                           } finally {
                             setIsUploadingVideo(false);
+                            setUploadProgress(0);
                           }
                         }
                       }}
