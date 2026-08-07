@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { BeltType, Student } from '../../types';
 import { BeltBadge } from '../belts/BeltBadge';
 import { Award, X, Sparkles, CheckCircle2, Clock, Check, AlertCircle } from 'lucide-react';
+import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
 
 interface GraduationModalProps {
   isOpen: boolean;
@@ -132,18 +133,34 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
               </select>
             </div>
 
-            {currentStudent && (
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Graduação Atual:</span>
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-200">{currentStudent.name}</span>
-                  <BeltBadge belt={currentStudent.belt} stripes={currentStudent.stripes} size="sm" />
+            {currentStudent && (() => {
+              const target = getStudentGraduationTarget(currentStudent, academyConfig);
+              const isEligible = isStudentEligibleForGraduation(currentStudent, academyConfig);
+              const hasCustom = typeof currentStudent.customGraduationTargetClasses === 'number' && currentStudent.customGraduationTargetClasses > 0;
+              return (
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Graduação Atual & Progresso:</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-200">{currentStudent.name}</span>
+                    <BeltBadge belt={currentStudent.belt} stripes={currentStudent.stripes} size="sm" />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-amber-400 font-semibold">
+                      {currentStudent.classesSinceLastGraduation} de {target} treinos {hasCustom ? '(Meta Indiv.)' : '(Meta Padrão)'}
+                    </span>
+                    {isEligible ? (
+                      <span className="text-emerald-400 font-extrabold bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/40">
+                        ✓ Apto a Graduar
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-[10px]">
+                        Faltam {target - currentStudent.classesSinceLastGraduation} treino(s)
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="text-[11px] text-amber-400 font-medium">
-                  {currentStudent.classesSinceLastGraduation} treinos realizados desde a última graduação.
-                </p>
-              </div>
-            )}
+              );
+            })()}
 
             {/* New Belt & Stripe Selectors */}
             <div className="grid grid-cols-2 gap-4">

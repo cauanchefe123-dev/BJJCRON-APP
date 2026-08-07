@@ -3,10 +3,11 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { BeltBadge } from '../belts/BeltBadge';
 import { PendingStudentApprovals } from '../students/PendingStudentApprovals';
-import { QrCode, CalendarDays, Award, Users, CheckCircle, Flame, Clock, Megaphone, Send, X, Sparkles, Target, Edit3, Video, Play, Loader2 } from 'lucide-react';
+import { QrCode, CalendarDays, Award, Users, CheckCircle, Flame, Clock, Megaphone, Send, X, Sparkles, Target, Edit3, Video, Play, Loader2, ArrowUpRight } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
 import { uploadVideoFile } from '../../lib/videoUpload';
+import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
 
 interface TeacherDashboardProps {
   onNavigate: (tab: string) => void;
@@ -14,7 +15,7 @@ interface TeacherDashboardProps {
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, onOpenCheckin }) => {
-  const { students, classes, attendances, addNotification, updateClass } = useData();
+  const { students, classes, attendances, addNotification, updateClass, academyConfig } = useData();
   const { currentUser } = useAuth();
 
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
@@ -225,6 +226,72 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
           </div>
         )}
       </div>
+
+      {/* Aptos a Graduar (Atletas que Atingiram a Meta de Treinos) */}
+      {(() => {
+        const studentsReadyForGraduation = students.filter(s =>
+          isStudentEligibleForGraduation(s, academyConfig)
+        );
+        return (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-400" />
+                  Alunos Aptos a Graduar ({studentsReadyForGraduation.length})
+                </h3>
+                <p className="text-xs text-slate-400">Atletas que atingiram ou ultrapassaram a meta de treinos pós-grau</p>
+              </div>
+              <button
+                onClick={() => onNavigate('students')}
+                className="text-xs text-amber-400 font-semibold hover:underline flex items-center gap-1"
+              >
+                Gerenciar Graduações <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {studentsReadyForGraduation.length === 0 ? (
+                <p className="text-xs text-slate-500 py-4 col-span-full text-center">Nenhum aluno atingiu a meta de treinos no momento.</p>
+              ) : (
+                studentsReadyForGraduation.map(s => {
+                  const target = getStudentGraduationTarget(s, academyConfig);
+                  const hasCustom = typeof s.customGraduationTargetClasses === 'number' && s.customGraduationTargetClasses > 0;
+                  return (
+                    <div key={s.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <img src={s.photoUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover border border-amber-400/40" />
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <p className="text-xs font-bold text-slate-100 truncate max-w-[100px]">{s.name}</p>
+                            {hasCustom && (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1 py-0.2 rounded font-bold" title="Meta individual de treinos">
+                                🎯
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5">
+                            <BeltBadge belt={s.belt} stripes={s.stripes} size="sm" showLabel={false} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-xs font-extrabold text-emerald-400 block">
+                          {s.classesSinceLastGraduation}/{target}
+                        </span>
+                        <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.2 rounded font-black uppercase">
+                          Apto
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Disparar Aviso Push Modal */}
       {isNoticeModalOpen && (

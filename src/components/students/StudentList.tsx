@@ -5,6 +5,7 @@ import { BeltBadge } from '../belts/BeltBadge';
 import { Student, BeltType } from '../../types';
 import { DEFAULT_BLACK_GI_AVATAR, getStudentAvatar } from '../../constants/avatar';
 import { getTrainingTimeText } from '../../utils/trainingTime';
+import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
 import { Search, UserPlus, Award, Filter, ShieldCheck, MoreVertical, Trash2, Edit3, Phone, Mail, IdCard, UserCheck, Check, X, AlertCircle, Clock } from 'lucide-react';
 import { SendEmailModal } from './SendEmailModal';
 
@@ -250,10 +251,25 @@ export const StudentList: React.FC<StudentListProps> = ({
                     </td>
 
                     <td className="py-3.5 px-4 font-bold text-slate-200">
-                      <span>{s.totalClassesAttended} treinos</span>
-                      <span className="block text-[10px] text-emerald-400">
-                        {s.classesSinceLastGraduation} pós-grau
-                      </span>
+                      {(() => {
+                        const target = getStudentGraduationTarget(s, academyConfig);
+                        const isEligible = isStudentEligibleForGraduation(s, academyConfig);
+                        return (
+                          <div>
+                            <span>{s.totalClassesAttended} treinos total</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className={`text-[10px] ${isEligible ? 'text-emerald-400 font-extrabold' : 'text-slate-400 font-semibold'}`}>
+                                {s.classesSinceLastGraduation}/{target} pós-grau
+                              </span>
+                              {isEligible && (
+                                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] px-1.5 py-0.2 rounded font-black uppercase">
+                                  Apto
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
