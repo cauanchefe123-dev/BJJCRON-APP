@@ -10,6 +10,8 @@ interface NavbarProps {
   onOpenSidebar: () => void;
   onOpenQuickScan?: () => void;
   onOpenAuthModal?: () => void;
+  isNotifOpen?: boolean;
+  setIsNotifOpen?: (open: boolean) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -17,11 +19,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSidebar,
   onOpenQuickScan,
   onOpenAuthModal,
+  isNotifOpen: externalIsNotifOpen,
+  setIsNotifOpen: externalSetIsNotifOpen,
 }) => {
   const { currentUser, logout } = useAuth();
   const { academyConfig, students, payments, notifications } = useData();
 
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [internalIsNotifOpen, setInternalIsNotifOpen] = useState(false);
+
+  const isNotifOpen = externalIsNotifOpen !== undefined ? externalIsNotifOpen : internalIsNotifOpen;
+  const setIsNotifOpen = externalSetIsNotifOpen || setInternalIsNotifOpen;
 
   const currentStudent = resolveStudentForUser(currentUser, students);
   const userAvatar = getUserAvatar(currentUser, currentStudent);

@@ -43,6 +43,7 @@ import { PaymentRecord, Student } from './types';
 import { AuthModal } from './components/auth/AuthModal';
 import { resolveStudentForUser } from './constants/avatar';
 import { InAppToastNotification } from './components/notifications/InAppToastNotification';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 
 function MainApp() {
   const { currentUser } = useAuth();
@@ -50,6 +51,7 @@ function MainApp() {
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [isNotifOpen, setIsNotifOpen] = useState<boolean>(false);
 
   // Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -104,10 +106,12 @@ function MainApp() {
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onOpenQuickScan={() => setIsQuickCheckinOpen(true)}
             onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            isNotifOpen={isNotifOpen}
+            setIsNotifOpen={setIsNotifOpen}
           />
 
           {/* Page Content */}
-          <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
+          <main className="flex-1 p-3 sm:p-6 md:p-8 pb-28 lg:pb-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-5">
             <ErrorBoundary onNavigateHome={() => setActiveTab('dashboard')}>
               <div key={activeTab} className="w-full">
                 {activeTab === 'dashboard' && (
@@ -241,6 +245,14 @@ function MainApp() {
 
       {/* Global In-App Floating Toast Notification */}
       <InAppToastNotification />
+
+      {/* Mobile Bottom Quick Navigation Bar */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenSidebar={() => setIsSidebarOpen(true)}
+        onOpenNotifications={() => setIsNotifOpen(true)}
+      />
     </div>
   );
 }
