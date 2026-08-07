@@ -77,15 +77,23 @@ async function startServer() {
   // ==========================================
   // VIDEO SERVER UPLOAD ENDPOINT
   // ==========================================
-  app.post('/api/upload-video', (req, res) => {
+  app.post('/api/upload-video', express.raw({ limit: '500mb', type: '*/*' }), (req, res) => {
     try {
       const rawFilename = (req.query.filename as string) || (req.headers['x-filename'] as string) || 'video.mp4';
       const cleanName = rawFilename.replace(/[^a-zA-Z0-9.-]/g, '_');
       const uniqueFileName = `${Date.now()}_${cleanName}`;
       const filePath = path.join(uploadsDir, uniqueFileName);
 
-      // Case 1: JSON body with base64 fileData
-      if (req.body && req.body.fileData) {
+      // Case 1: Binary Buffer from express.raw
+      if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+        fs.writeFileSync(filePath, req.body);
+        const serverUrl = `/uploads/videos/${uniqueFileName}`;
+        console.log(`[VIDEO UPLOAD] Vídeo salvo com SUCESSO (${req.body.length} bytes): ${serverUrl}`);
+        return res.json({ success: true, url: serverUrl });
+      }
+
+      // Case 2: JSON body with base64 fileData
+      if (req.body && typeof req.body === 'object' && req.body.fileData) {
         const base64Data = req.body.fileData.replace(/^data:video\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
         fs.writeFileSync(filePath, buffer);
@@ -94,7 +102,7 @@ async function startServer() {
         return res.json({ success: true, url: serverUrl });
       }
 
-      // Case 2: Direct Binary Stream Upload (High Performance & Smooth Progress)
+      // Case 3: Stream Pipe Fallback
       const writeStream = fs.createWriteStream(filePath);
       req.pipe(writeStream);
 

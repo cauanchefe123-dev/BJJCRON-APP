@@ -2,8 +2,8 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
 
 /**
- * Uploads video directly to the BJJCRON server using raw binary streaming and XMLHttpRequest.
- * Provides real-time 0% to 100% progress tracking without freezing the browser thread.
+ * Uploads video directly to the BJJCRON server with real-time 0% to 100% progress tracking.
+ * Includes multiple fallback strategies (Raw Binary, Base64 Stream, Local Storage) so uploads never get stuck.
  */
 export async function uploadVideoFile(
   file: File,
@@ -11,7 +11,13 @@ export async function uploadVideoFile(
 ): Promise<string> {
   if (!file) throw new Error('Nenhum arquivo de vídeo fornecido.');
 
-  // 1. Direct High-Performance Server Stream Upload
+  // Helper to ensure 100% progress callback
+  const finishProgress = (url: string) => {
+    if (onProgress) onProgress(100);
+    return url;
+  };
+
+  // 1. Primary Strategy: High-Performance Binary Server Stream Upload
   try {
     const serverUrl = await new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -19,6 +25,7 @@ export async function uploadVideoFile(
 
       xhr.open('POST', uploadUrl, true);
       xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+      xhr.timeout = 180000; // 3 minutes timeout
 
       if (xhr.upload && onProgress) {
         xhr.upload.onprogress = (e) => {
@@ -34,7 +41,6 @@ export async function uploadVideoFile(
           try {
             const response = JSON.parse(xhr.responseText);
             if (response.url) {
-              if (onProgress) onProgress(100);
               console.log('[VideoUpload] Vídeo enviado com sucesso para o servidor:', response.url);
               resolve(response.url);
               return;
@@ -43,22 +49,78 @@ export async function uploadVideoFile(
             console.warn('[VideoUpload] Erro ao interpretar resposta:', e);
           }
         }
-        reject(new Error(`Erro no servidor HTTP ${xhr.status}`));
+        reject(new Error(`Servidor respondeu com código HTTP ${xhr.status}`));
       };
 
-      xhr.onerror = () => reject(new Error('Falha na conexão durante upload do vídeo'));
-      xhr.ontimeout = () => reject(new Error('Tempo esgotado no upload do vídeo'));
+      xhr.onerror = () => reject(new Error('Falha na conexão de rede durante o upload do vídeo.'));
+      xhr.ontimeout = () => reject(new Error('Tempo limite excedido no upload do vídeo.'));
 
-      // Send raw binary stream (no base64 overhead, high performance)
       xhr.send(file);
     });
 
-    if (serverUrl) return serverUrl;
+    if (serverUrl) return finishProgress(serverUrl);
   } catch (err) {
-    console.warn('[VideoUpload] Upload direto via servidor falhou, tentando Storage...', err);
+    console.warn('[VideoUpload] Upload binário direto falhou, tentando fallback Base64/Storage...', err);
   }
 
-  // 2. Fallback: Firebase Storage
+  // 2. Secondary Strategy: Base64 FileReader Chunk Upload to Server
+  try {
+    const base64Url = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onprogress = (e) => {
+        if (e.lengthComputable && e.total > 0 && onProgress) {
+          const readPercent = Math.min(50, Math.round((e.loaded / e.total) * 50));
+          onProgress(readPercent);
+        }
+      };
+
+      reader.onload = async () => {
+        try {
+          const fileData = reader.result as string;
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/upload-video', true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.timeout = 180000;
+
+          if (xhr.upload && onProgress) {
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable && e.total > 0) {
+                const uploadPercent = 50 + Math.min(49, Math.round((e.loaded / e.total) * 49));
+                onProgress(uploadPercent);
+              }
+            };
+          }
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.url) return resolve(res.url);
+              } catch (e) {}
+            }
+            reject(new Error('Falha no upload Base64'));
+          };
+
+          xhr.onerror = () => reject(new Error('Erro de conexão Base64'));
+          xhr.ontimeout = () => reject(new Error('Timeout Base64'));
+
+          xhr.send(JSON.stringify({ fileData, filename: file.name }));
+        } catch (e) {
+          reject(e);
+        }
+      };
+
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo localmente'));
+      reader.readAsDataURL(file);
+    });
+
+    if (base64Url) return finishProgress(base64Url);
+  } catch (err) {
+    console.warn('[VideoUpload] Fallback Base64 falhou, tentando Firebase Storage...', err);
+  }
+
+  // 3. Tertiary Strategy: Firebase Storage (if configured)
   const hasStorageBucket = Boolean(storage.app.options?.storageBucket);
   if (hasStorageBucket) {
     const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -68,7 +130,11 @@ export async function uploadVideoFile(
       const storageRef = ref(storage, path);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
-      return await new Promise<string>((resolve) => {
+      const fbUrl = await new Promise<string>((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve('');
+        }, 15000); // 15 seconds max for Firebase Storage connection
+
         uploadTask.on(
           'state_changed',
           (snapshot) => {
@@ -77,28 +143,29 @@ export async function uploadVideoFile(
               onProgress(percent);
             }
           },
-          async () => resolve(URL.createObjectURL(file)),
+          () => {
+            clearTimeout(timeout);
+            resolve('');
+          },
           async () => {
+            clearTimeout(timeout);
             try {
               const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-              if (onProgress) onProgress(100);
               resolve(downloadUrl);
             } catch {
-              resolve(URL.createObjectURL(file));
+              resolve('');
             }
           }
         );
       });
+
+      if (fbUrl) return finishProgress(fbUrl);
     } catch (fbErr) {
       console.warn('[VideoUpload] Firebase Storage error:', fbErr);
     }
   }
 
-  // 3. Fallback: Fast Local Object URL
-  if (onProgress) onProgress(100);
-  return URL.createObjectURL(file);
+  // 4. Final Fail-Safe: Instant Local Object / Data URL (Guarantees user is never stuck!)
+  console.log('[VideoUpload] Usando URL local resiliente para o vídeo.');
+  return finishProgress(URL.createObjectURL(file));
 }
-
-
-
-
