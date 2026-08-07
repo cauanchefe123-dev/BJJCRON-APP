@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Video, ExternalLink, Sparkles, Play, ShieldAlert } from 'lucide-react';
+import { X, Video, ExternalLink, Sparkles, ShieldAlert, Play } from 'lucide-react';
 
 interface TechniqueVideoModalProps {
   isOpen: boolean;
@@ -17,12 +17,10 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
   videoUrl,
 }) => {
   const [videoError, setVideoError] = useState(false);
-  const [isPlayingDirect, setIsPlayingDirect] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setVideoError(false);
-    setIsPlayingDirect(false);
   }, [videoUrl, isOpen]);
 
   if (!isOpen) return null;
@@ -46,7 +44,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     isServerUpload ||
     /\.(mp4|webm|ogg|mov|m4v|3gp)(\?.*)?$/i.test(cleanUrl);
 
-  // Extract ID / Direct Link for Native App launch
+  // Extract Direct Link for Native App launch or browser open
   const getDirectNativeUrl = (url: string) => {
     if (!url) return '';
 
@@ -73,9 +71,40 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     return url;
   };
 
-  const directNativeUrl = getDirectNativeUrl(cleanUrl);
+  const getAbsoluteOpenUrl = (rawUrl: string): string => {
+    if (!rawUrl) return '';
+    const trimmed = rawUrl.trim();
+    const native = getDirectNativeUrl(trimmed);
+    if (native && native.startsWith('http')) return native;
 
-  // Generate Embed URL
+    if (trimmed.startsWith('/')) {
+      return window.location.origin + trimmed;
+    }
+    return trimmed;
+  };
+
+  const handleOpenExternal = (rawUrl: string) => {
+    const targetUrl = getAbsoluteOpenUrl(rawUrl);
+    if (!targetUrl) return;
+
+    if (targetUrl.startsWith('blob:')) {
+      if (videoRef.current) {
+        videoRef.current.play().catch(console.warn);
+      }
+      return;
+    }
+
+    try {
+      const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.top?.location.assign(targetUrl);
+      }
+    } catch (e) {
+      window.location.href = targetUrl;
+    }
+  };
+
+  // Generate Embed URL for iframes
   const parseEmbedUrl = (url: string) => {
     if (!url) return null;
 
@@ -84,7 +113,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
       /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|shorts\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
     );
     if (ytMatch && ytMatch[1]) {
-      return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&playsinline=1&enablejsapi=1&modestbranding=1`;
+      return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
     }
 
     // Vimeo
@@ -93,7 +122,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
       return `https://player.vimeo.com/video/${vimeoMatch[1]}?playsinline=1`;
     }
 
-    // Google Drive (Only use preview if valid ID)
+    // Google Drive
     const driveMatch = url.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)|docs\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/i);
     if (driveMatch && driveMatch[1]) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
@@ -122,20 +151,12 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
     if (isInstagram) return 'Abrir no Instagram 📱';
     if (isTikTok) return 'Abrir no TikTok 📱';
     if (isVimeo) return 'Abrir no Vimeo 📱';
-    return 'Assistir Vídeo 📱';
+    return 'Abrir Vídeo em Tela Cheia / App 📱';
   };
 
-  const handlePlayDirectVideo = () => {
-    if (videoRef.current) {
-      videoRef.current
-        .play()
-        .then(() => setIsPlayingDirect(true))
-        .catch((err) => {
-          console.warn('Playback error:', err);
-          setVideoError(true);
-        });
-    }
-  };
+  const directVideoSourceUrl = cleanUrl.startsWith('/')
+    ? window.location.origin + cleanUrl
+    : cleanUrl;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
@@ -149,7 +170,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
             </div>
             <div className="min-w-0">
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block truncate">
-                Player do Tatame — BJJCRON
+                Player de Vídeo — BJJCRON
               </span>
               <h3 className="font-extrabold text-xs sm:text-base text-slate-100 truncate">{title}</h3>
             </div>
@@ -158,7 +179,7 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all shrink-0"
-            title="Fechar"
+            title="Fechar Player"
           >
             <X className="w-5 h-5" />
           </button>
@@ -177,39 +198,58 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
             </div>
           )}
 
-          {/* Warning for outdated local blob URLs */}
+          {/* Warning for local blob URLs */}
           {isBlob && (
             <div className="bg-amber-950/60 border border-amber-500/40 rounded-xl p-2.5 text-xs text-amber-200 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
               <p className="text-[11px]">
-                Vídeo gravado localmente neste navegador. Para disponibilizar aos alunos em qualquer celular, recomende ao professor colar o link do YouTube na edição da turma.
+                Vídeo gravado neste dispositivo. Para disponibilizar a todos os alunos, o professor pode subir o arquivo MP4 diretamente no painel.
               </p>
             </div>
           )}
 
-          {/* Main Player Box */}
+          {/* Main Player Container */}
           <div className="bg-black rounded-xl overflow-hidden border border-slate-800 aspect-video relative flex items-center justify-center shadow-2xl min-h-[220px]">
             {videoError ? (
-              /* Error fallback - Single Clean Gold Action Button */
+              /* Fallback view if iframe fails */
               <div className="p-6 text-center space-y-4 my-auto">
                 <Video className="w-12 h-12 text-amber-400 mx-auto opacity-90" />
                 <div className="space-y-1">
                   <h4 className="font-extrabold text-sm text-slate-100">Vídeo da Posição</h4>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Toque no botão abaixo para reproduzir diretamente no celular.
+                    Toque no botão abaixo para assistir ao vídeo diretamente.
                   </p>
                 </div>
                 {cleanUrl && (
-                  <a
-                    href={directNativeUrl || cleanUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => handleOpenExternal(cleanUrl)}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all shadow-xl active:scale-95"
                   >
                     <ExternalLink className="w-4 h-4" />
                     <span>{getButtonLabel()}</span>
-                  </a>
+                  </button>
                 )}
+              </div>
+            ) : isDirectFile && cleanUrl ? (
+              /* Direct HTML5 Player */
+              <div className="w-full h-full relative flex items-center justify-center bg-black">
+                <video
+                  ref={videoRef}
+                  src={directVideoSourceUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  // @ts-ignore
+                  webkit-playsinline="true"
+                  preload="auto"
+                  controlsList="nodownload"
+                  className="w-full h-full object-contain max-h-[60vh] rounded-xl"
+                >
+                  <source src={directVideoSourceUrl} type="video/mp4" />
+                  <source src={directVideoSourceUrl} type="video/quicktime" />
+                  <source src={directVideoSourceUrl} type="video/webm" />
+                  Seu navegador não suporta reprodução de vídeo MP4.
+                </video>
               </div>
             ) : embedUrl ? (
               /* Embed Player (YouTube, Vimeo, Drive, Insta) */
@@ -223,60 +263,23 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
                   onError={() => setVideoError(true)}
                 />
               </div>
-            ) : isDirectFile && cleanUrl ? (
-              /* Direct HTML5 Video Player */
-              <div className="w-full h-full relative flex items-center justify-center bg-black">
-                <video
-                  ref={videoRef}
-                  src={cleanUrl}
-                  controls
-                  playsInline
-                  // @ts-ignore
-                  webkit-playsinline="true"
-                  preload="metadata"
-                  controlsList="nodownload"
-                  onError={() => setVideoError(true)}
-                  onPlay={() => setIsPlayingDirect(true)}
-                  className="w-full h-full object-contain max-h-[60vh] rounded-xl"
-                >
-                  <source src={cleanUrl} type="video/mp4" />
-                  <source src={cleanUrl} type="video/quicktime" />
-                  <source src={cleanUrl} type="video/webm" />
-                </video>
-
-                {!isPlayingDirect && (
-                  <button
-                    onClick={handlePlayDirectVideo}
-                    className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 text-amber-400 hover:text-amber-300 transition-all group cursor-pointer"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-amber-500 group-hover:bg-amber-400 flex items-center justify-center shadow-2xl text-slate-950 pl-1 transform group-hover:scale-110 transition-transform">
-                      <Play className="w-8 h-8 fill-slate-950 text-slate-950" />
-                    </div>
-                    <span className="text-xs font-black bg-slate-950/90 px-3.5 py-1.5 rounded-full text-white border border-amber-500/40 shadow-md">
-                      Toque para Iniciar o Vídeo
-                    </span>
-                  </button>
-                )}
-              </div>
             ) : cleanUrl ? (
-              /* Direct Action Player Box */
+              /* Direct Action Box for external URLs without standard embed */
               <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4 bg-slate-950">
                 <Video className="w-12 h-12 text-amber-400 animate-pulse" />
                 <div className="space-y-1">
                   <h4 className="font-extrabold text-sm text-slate-100">Vídeo Disponível</h4>
                   <p className="text-xs text-slate-400 max-w-sm">
-                    Clique no botão abaixo para abrir e assistir ao vídeo.
+                    Toque no botão abaixo para reproduzir diretamente no seu dispositivo.
                   </p>
                 </div>
-                <a
-                  href={directNativeUrl || cleanUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handleOpenExternal(cleanUrl)}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-xl transition-all active:scale-95"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>{getButtonLabel()}</span>
-                </a>
+                </button>
               </div>
             ) : (
               /* No video attached */
@@ -286,6 +289,17 @@ export const TechniqueVideoModal: React.FC<TechniqueVideoModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Direct Action Link Button (Always visible below player for maximum compatibility) */}
+          {cleanUrl && (
+            <button
+              onClick={() => handleOpenExternal(cleanUrl)}
+              className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 active:scale-98"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>{getButtonLabel()}</span>
+            </button>
+          )}
         </div>
 
         {/* Modal Footer */}
