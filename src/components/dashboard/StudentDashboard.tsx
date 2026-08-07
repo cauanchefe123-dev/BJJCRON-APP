@@ -56,25 +56,25 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
       )}
 
       {/* Student Profile Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-neutral-900 border border-slate-800 rounded-2xl p-6 text-white space-y-6 shadow-xl">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-neutral-900 border border-slate-800 rounded-2xl p-4 sm:p-6 text-white space-y-5 shadow-xl">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3.5">
             <img
               src={getStudentAvatar(currentStudent)}
               alt={currentStudent.name}
-              className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-md bg-slate-900"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-amber-400 shadow-md bg-slate-900 shrink-0"
             />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black text-slate-100">{currentStudent.name}</h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-black text-slate-100 truncate">{currentStudent.name}</h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                   Matrícula {currentStudent.registrationNumber}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Atleta da {academyConfig.name}</p>
+              <p className="text-xs text-slate-400 truncate">Atleta da {academyConfig.name}</p>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <BeltBadge belt={currentStudent.belt} stripes={currentStudent.stripes} size="md" />
-                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shrink-0">
                   <Clock className="w-3.5 h-3.5 text-amber-400" />
                   {getTrainingTimeText(currentStudent.startDate, currentStudent.initialMonthsTrained)}
                 </span>
@@ -82,45 +82,45 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
             {onOpenEditModal && currentStudent && (
               <button
                 onClick={() => onOpenEditModal(currentStudent)}
-                className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg transition-all"
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md transition-all active:scale-95"
               >
-                <Edit3 className="w-4 h-4" />
-                Editar Meu Cadastro
+                <Edit3 className="w-4 h-4 shrink-0" />
+                <span className="truncate">Editar Cadastro</span>
               </button>
             )}
             {currentUser?.role !== 'ADMIN' && !selectedStudentId && (
               <button
                 onClick={() => onNavigate('academies')}
-                className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg transition-all"
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all active:scale-95"
               >
-                <Shield className="w-4 h-4 text-amber-300" />
-                Vincular à Academia
+                <Shield className="w-4 h-4 text-amber-300 shrink-0" />
+                <span className="truncate">Vincular Academia</span>
               </button>
             )}
             <button
               onClick={() => onNavigate('card')}
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md transition-all active:scale-95"
             >
-              <QrCode className="w-4 h-4" />
-              Carteirinha Digital
+              <QrCode className="w-4 h-4 shrink-0" />
+              <span className="truncate">Carteirinha</span>
             </button>
             <button
               onClick={() => onNavigate('journal')}
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all active:scale-95"
             >
-              <BookOpen className="w-4 h-4 text-amber-400" />
-              Diário
+              <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">Diário</span>
             </button>
             <button
               onClick={() => onNavigate('observations')}
-              className="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800/60 text-purple-200 font-bold text-xs border border-purple-700/50 transition-all"
+              className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800/60 text-purple-200 font-bold text-xs border border-purple-700/50 transition-all active:scale-95"
             >
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              Observações
+              <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+              <span className="truncate">Observações</span>
             </button>
           </div>
         </div>
@@ -251,35 +251,35 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-white space-y-1">
-          <span className="text-xs font-bold text-slate-400">Total de Treinos</span>
-          <p className="text-3xl font-black text-amber-400">{currentStudent.totalClassesAttended}</p>
-          <p className="text-[11px] text-slate-400">Presenças computadas no tatame</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Total de Treinos</span>
+          <p className="text-2xl sm:text-3xl font-black text-amber-400">{currentStudent.totalClassesAttended}</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Presenças no tatame</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-white space-y-1">
-          <span className="text-xs font-bold text-slate-400">Tempo Total de Treino</span>
-          <p className="text-xl font-black text-amber-300">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Tempo de Treino</span>
+          <p className="text-lg sm:text-xl font-black text-amber-300 truncate">
             {getTrainingTimeText(currentStudent.startDate, currentStudent.initialMonthsTrained)}
           </p>
-          <p className="text-[11px] text-slate-400">Jornada acumulada (meses/anos)</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Jornada acumulada</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-white space-y-1">
-          <span className="text-xs font-bold text-slate-400">Horas de Tatame</span>
-          <p className="text-3xl font-black text-blue-400">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Horas de Tatame</span>
+          <p className="text-2xl sm:text-3xl font-black text-blue-400">
             {Math.round((currentStudent.totalClassesAttended * 75) / 60)}h
           </p>
-          <p className="text-[11px] text-slate-400">Horas acumuladas em aula</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Em aula prática</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-white space-y-1">
-          <span className="text-xs font-bold text-slate-400">Status da Matrícula</span>
-          <p className="text-2xl font-black text-emerald-400">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Status da Matrícula</span>
+          <p className="text-xl sm:text-2xl font-black text-emerald-400">
             ATIVO
           </p>
-          <p className="text-[11px] text-slate-400">Atleta regularizado na academia</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Atleta regularizado</p>
         </div>
       </div>
 

@@ -82,20 +82,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className="p-4 flex-1 overflow-y-auto">
           {/* Logo Brand */}
-          <div className="flex items-center gap-3 px-2 py-3 mb-6 border-b border-slate-800">
-            <img
-              src={academyConfig.logoUrl || '/logo.svg'}
-              alt={academyConfig.fantasyName || academyConfig.name || 'BJJCRON'}
-              className="w-10 h-10 rounded-xl object-contain border border-amber-500/50 shadow-md bg-slate-950 p-0.5"
-            />
-            <div className="min-w-0 flex-1">
-              <h1 className="font-black text-sm tracking-wider text-white truncate">
-                {academyConfig.fantasyName || 'BJJCRON'}
-              </h1>
-              <p className="text-[10px] text-amber-400 tracking-tight font-bold uppercase truncate">
-                {academyConfig.name || 'Jiu-Jitsu Academy'}
-              </p>
+          <div className="flex items-center justify-between px-2 py-3 mb-6 border-b border-slate-800">
+            <div className="flex items-center gap-3 min-w-0">
+              <img
+                src={academyConfig.logoUrl || '/logo.svg'}
+                alt={academyConfig.fantasyName || academyConfig.name || 'BJJCRON'}
+                className="w-10 h-10 rounded-xl object-contain border border-amber-500/50 shadow-md bg-slate-950 p-0.5 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <h1 className="font-black text-sm tracking-wider text-white truncate">
+                  {academyConfig.fantasyName || 'BJJCRON'}
+                </h1>
+                <p className="text-[10px] text-amber-400 tracking-tight font-bold uppercase truncate">
+                  {academyConfig.name || 'Jiu-Jitsu Academy'}
+                </p>
+              </div>
             </div>
+
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 lg:hidden shrink-0"
+              title="Fechar menu"
+            >
+              ✕
+            </button>
           </div>
 
           {/* User Badge Info */}

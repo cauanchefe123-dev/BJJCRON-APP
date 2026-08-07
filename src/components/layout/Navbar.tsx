@@ -51,45 +51,54 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white px-4 py-3 flex items-center justify-between print:hidden">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 text-white px-3 sm:px-4 py-2.5 flex items-center justify-between print:hidden shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={onOpenSidebar}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 lg:hidden"
+            className="p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 active:bg-slate-800 lg:hidden shrink-0"
             title="Abrir menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <img
               src={academyConfig.logoUrl || '/logo.svg'}
               alt="BJJCRON Logo"
-              className="w-8 h-8 rounded-lg object-contain bg-slate-950 p-0.5 border border-slate-700/80 shadow-xs"
+              className="w-8 h-8 rounded-lg object-contain bg-slate-950 p-0.5 border border-slate-700/80 shadow-xs shrink-0"
             />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                  {tabTitles[activeTab] || 'BJJCRON'}
-                </h2>
-              </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-bold text-slate-100 truncate">
+                {tabTitles[activeTab] || 'BJJCRON'}
+              </h2>
+              <p className="text-[10px] text-slate-400 hidden sm:block truncate">
                 {academyConfig.fantasyName || academyConfig.name}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Quick QR Scan Button for Professor/Admin */}
           {(currentUser?.role === 'PROFESSOR' || currentUser?.role === 'ADMIN') && onOpenQuickScan && (
-            <button
-              onClick={onOpenQuickScan}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all"
-            >
-              <QrCode className="w-4 h-4" />
-              Escanear QR Presença
-            </button>
+            <>
+              {/* Mobile Icon-only Button */}
+              <button
+                onClick={onOpenQuickScan}
+                className="flex sm:hidden p-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md transition-all active:scale-95"
+                title="Escanear QR Presença"
+              >
+                <QrCode className="w-4 h-4" />
+              </button>
+              {/* Desktop Full Button */}
+              <button
+                onClick={onOpenQuickScan}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95"
+              >
+                <QrCode className="w-4 h-4" />
+                Escanear QR Presença
+              </button>
+            </>
           )}
 
           {/* Central Notification Bell for Students, Professors, Admins */}
