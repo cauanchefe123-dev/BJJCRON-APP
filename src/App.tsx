@@ -173,12 +173,6 @@ function MainApp() {
 
                 {activeTab === 'classes' && <ClassManager />}
 
-                {activeTab === 'financial' && (currentUser.role === 'ADMIN' || currentUser.role === 'PROFESSOR') && (
-                  <PaymentManager
-                    onOpenPixModal={(p) => setPixModalPayment(p)}
-                  />
-                )}
-
                 {activeTab === 'card' && (
                   <div className="py-4">
                     <DigitalMembershipCard
