@@ -16,6 +16,13 @@ import {
 } from '../types';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 import { checkClassCheckinAvailability } from '../utils/checkin';
+
+const getLocalDateStr = (d: Date = new Date()): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 import {
   INITIAL_ACADEMY_CONFIG,
   INITIAL_ATTENDANCE,
@@ -924,17 +931,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateStr();
 
-    // Check if student already checked in today for this class
+    // Check if student already checked in today (limit to 1 attendance per day)
     const alreadyPresent = attendances.some(a => 
       a.studentId === student.id && 
-      a.classId === bjjClass.id && 
       a.date === todayStr
     );
 
-    if (alreadyPresent) {
-      return { success: false, message: `Atenção: ${student.name} já registrou presença nesta aula hoje!` };
+    if (alreadyPresent && !bypassTimeCheck) {
+      return { success: false, message: `Atenção: ${student.name} já registrou presença hoje! (Permitida apenas 1 presença por dia de aula)` };
     }
 
     const newRecord: AttendanceRecord = {
