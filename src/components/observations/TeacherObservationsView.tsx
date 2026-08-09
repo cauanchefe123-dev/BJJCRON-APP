@@ -6,6 +6,7 @@ import {
   MessageSquareQuote,
   Plus,
   Trash2,
+  Edit,
   Search,
   Filter,
   UserCheck,
@@ -19,7 +20,7 @@ import {
 
 export const TeacherObservationsView: React.FC = () => {
   const { currentUser } = useAuth();
-  const { students, teacherObservations, addTeacherObservation, deleteTeacherObservation } = useData();
+  const { students, teacherObservations, addTeacherObservation, updateTeacherObservation, deleteTeacherObservation } = useData();
 
   const isTeacherOrAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'PROFESSOR';
 
@@ -30,6 +31,7 @@ export const TeacherObservationsView: React.FC = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [editingObservationId, setEditingObservationId] = useState<string | null>(null);
   const [targetStudentId, setTargetStudentId] = useState<string>('');
   const [category, setCategory] = useState<'TÉCNICA' | 'EVOLUÇÃO' | 'COMPORTAMENTO' | 'GERAL'>('TÉCNICA');
   const [title, setTitle] = useState<string>('');
@@ -76,29 +78,59 @@ export const TeacherObservationsView: React.FC = () => {
     return true;
   });
 
-  const handleSubmitNewObservation = (e: React.FormEvent) => {
+  const handleOpenCreateModal = () => {
+    setEditingObservationId(null);
+    setTargetStudentId('');
+    setCategory('TÉCNICA');
+    setTitle('');
+    setContent('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (obs: TeacherObservation) => {
+    setEditingObservationId(obs.id);
+    setTargetStudentId(obs.studentId);
+    setCategory(obs.category);
+    setTitle(obs.title);
+    setContent(obs.content);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitObservation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetStudentId || !title.trim() || !content.trim()) return;
 
     const selectedStudent = students.find(s => s.id === targetStudentId);
 
-    addTeacherObservation({
-      studentId: targetStudentId,
-      studentName: selectedStudent ? selectedStudent.name : 'Aluno',
-      teacherId: currentUser?.id || 'tch-1',
-      teacherName: currentUser?.name || 'Professor',
-      title: title.trim(),
-      content: content.trim(),
-      category,
-    });
+    if (editingObservationId) {
+      updateTeacherObservation(editingObservationId, {
+        studentId: targetStudentId,
+        studentName: selectedStudent ? selectedStudent.name : 'Aluno',
+        title: title.trim(),
+        content: content.trim(),
+        category,
+      });
+      setSuccessMessage('Observação atualizada com sucesso!');
+    } else {
+      addTeacherObservation({
+        studentId: targetStudentId,
+        studentName: selectedStudent ? selectedStudent.name : 'Aluno',
+        teacherId: currentUser?.id || 'tch-1',
+        teacherName: currentUser?.name || 'Professor',
+        title: title.trim(),
+        content: content.trim(),
+        category,
+      });
+      setSuccessMessage('Observação enviada com sucesso para o aluno!');
+    }
 
-    setSuccessMessage('Observação enviada com sucesso para o aluno!');
     setTimeout(() => setSuccessMessage(null), 3000);
 
     // Reset Form
     setTitle('');
     setContent('');
     setTargetStudentId('');
+    setEditingObservationId(null);
     setIsModalOpen(false);
   };
 
@@ -140,7 +172,7 @@ export const TeacherObservationsView: React.FC = () => {
 
           {isTeacherOrAdmin && (
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleOpenCreateModal}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -246,13 +278,24 @@ export const TeacherObservationsView: React.FC = () => {
                   </div>
 
                   {isTeacherOrAdmin && (
-                    <button
-                      onClick={() => deleteTeacherObservation(obs.id)}
-                      title="Excluir observação"
-                      className="text-slate-600 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-950/30 transition-all opacity-70 group-hover:opacity-100"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(obs)}
+                        title="Editar observação"
+                        className="text-slate-500 hover:text-amber-400 p-1.5 rounded-lg hover:bg-amber-500/10 transition-all opacity-80 group-hover:opacity-100 cursor-pointer"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTeacherObservation(obs.id)}
+                        title="Excluir observação"
+                        className="text-slate-600 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-950/30 transition-all opacity-70 group-hover:opacity-100 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -281,16 +324,19 @@ export const TeacherObservationsView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal to Add Observation */}
+      {/* Modal to Add/Edit Observation */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-scaleUp">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
               <div className="flex items-center gap-2">
                 <MessageSquareQuote className="w-5 h-5 text-amber-400" />
-                <h2 className="text-sm font-bold text-white">Nova Observação do Professor</h2>
+                <h2 className="text-sm font-bold text-white">
+                  {editingObservationId ? 'Editar Observação do Professor' : 'Nova Observação do Professor'}
+                </h2>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-white p-1 rounded-lg"
               >
@@ -298,7 +344,7 @@ export const TeacherObservationsView: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmitNewObservation} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleSubmitObservation} className="p-5 space-y-4 text-xs">
               <div>
                 <label className="block text-slate-300 font-medium mb-1.5">
                   Selecione o Aluno *
@@ -380,7 +426,7 @@ export const TeacherObservationsView: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all shadow-md shadow-amber-500/20"
                 >
-                  Enviar Observação
+                  {editingObservationId ? 'Salvar Alterações' : 'Enviar Observação'}
                 </button>
               </div>
             </form>

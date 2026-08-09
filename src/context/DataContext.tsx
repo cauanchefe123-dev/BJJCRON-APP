@@ -99,6 +99,7 @@ interface DataContextType {
 
   // Teacher Observation Actions
   addTeacherObservation: (obs: Omit<TeacherObservation, 'id' | 'date'>) => void;
+  updateTeacherObservation: (id: string, updates: Partial<TeacherObservation>) => void;
   deleteTeacherObservation: (id: string) => void;
 
   // Config Actions
@@ -1159,6 +1160,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch(() => {});
   };
 
+  const updateTeacherObservation = (id: string, updates: Partial<TeacherObservation>) => {
+    setTeacherObservations(prev => {
+      const updated = prev.map(o => {
+        if (o.id === id) {
+          const targetStudent = updates.studentId ? students.find(s => s.id === updates.studentId) : null;
+          return {
+            ...o,
+            ...updates,
+            ...(targetStudent ? { studentName: targetStudent.name } : {})
+          };
+        }
+        return o;
+      });
+      localStorage.setItem('bjjcron_teacher_observations', JSON.stringify(updated));
+      return updated;
+    });
+
+    const existing = teacherObservations.find(o => o.id === id);
+    if (existing) {
+      const targetStudent = updates.studentId ? students.find(s => s.id === updates.studentId) : null;
+      const updatedObj = {
+        ...existing,
+        ...updates,
+        ...(targetStudent ? { studentName: targetStudent.name } : {})
+      };
+      saveToFirestore('teacherObservations', updatedObj);
+      fetch(`/api/teacher-observations/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedObj)
+      }).catch(() => {});
+    }
+  };
+
   const deleteTeacherObservation = (id: string) => {
     setTeacherObservations(prev => {
       const updated = prev.filter(o => o.id !== id);
@@ -1318,6 +1353,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       markPaymentAsPaid,
       addTrainingLog,
       addTeacherObservation,
+      updateTeacherObservation,
       deleteTeacherObservation,
       updateAcademyConfig,
       resetToDefaultData,
