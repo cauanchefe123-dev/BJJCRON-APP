@@ -100,6 +100,11 @@ const getSyncedInitialUsers = (): User[] => {
           changed = true;
         } else {
           const existingUser = baseUsers[existingIdx];
+          if (std.approvalStatus === 'APPROVED' && existingUser.approvalStatus !== 'APPROVED') {
+            existingUser.approvalStatus = 'APPROVED';
+            existingUser.isActivated = true;
+            changed = true;
+          }
           if (std.name && existingUser.name !== std.name) {
             existingUser.name = std.name;
             changed = true;
@@ -151,26 +156,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUsers(prev => {
             const savedStudents = localStorage.getItem('bjjcron_students');
             let merged = data;
-            if (savedStudents) {
-              try {
-                const studentsList = JSON.parse(savedStudents);
-                merged = data.map((u: User) => {
-                  const match = studentsList.find((s: any) => 
-                    (s.id && u.studentId && s.id === u.studentId) || 
-                    (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
-                  );
-                  if (match) {
-                    return {
-                      ...u,
-                      name: match.name || u.name,
-                      phone: match.phone || u.phone,
-                      avatarUrl: (match.photoUrl && !match.photoUrl.includes('unsplash.com')) ? match.photoUrl : u.avatarUrl
-                    };
-                  }
-                  return u;
-                });
-              } catch (e) {}
-            }
+            try {
+              const studentsList = savedStudents ? JSON.parse(savedStudents) : [];
+              merged = data.map((u: User) => {
+                const match = studentsList.find((s: any) => 
+                  (s.id && u.studentId && s.id === u.studentId) || 
+                  (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+                );
+                const localPrev = prev.find((p: User) => p.id === u.id || (p.email && u.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
+                const isApproved = u.approvalStatus === 'APPROVED' || (match && match.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED');
+                const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (match && match.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'PENDING');
+
+                return {
+                  ...u,
+                  approvalStatus: bestApproval,
+                  isActivated: bestApproval === 'APPROVED' ? true : u.isActivated,
+                  name: (match && match.name) || u.name,
+                  phone: (match && match.phone) || u.phone,
+                  avatarUrl: (match && match.photoUrl && !match.photoUrl.includes('unsplash.com')) ? match.photoUrl : u.avatarUrl
+                };
+              });
+            } catch (e) {}
+
             const isDiff = JSON.stringify(prev) !== JSON.stringify(merged);
             if (isDiff) {
               localStorage.setItem('bjjcron_users', JSON.stringify(merged));
@@ -211,9 +218,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               currUser.id === u.id || 
               (currUser.email && u.email && currUser.email.trim().toLowerCase() === u.email.trim().toLowerCase())
             );
+            const localPrev = prev.find(p => p.id === u.id || (p.email && u.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
+            const isApproved = u.approvalStatus === 'APPROVED' || (stMatch && stMatch.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED');
+            const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (stMatch && stMatch.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'PENDING');
 
             return {
               ...u,
+              approvalStatus: bestApproval,
+              isActivated: bestApproval === 'APPROVED' ? true : u.isActivated,
               name: (isCurr && currUser.name) ? currUser.name : (stMatch && stMatch.name) ? stMatch.name : u.name,
               email: (isCurr && currUser.email) ? currUser.email : (stMatch && stMatch.email) ? stMatch.email : u.email,
               phone: (isCurr && currUser.phone) ? currUser.phone : (stMatch && stMatch.phone) ? stMatch.phone : u.phone,
@@ -843,31 +855,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const approveUser = (identifier: string) => {
     const cleanId = identifier.trim().toLowerCase();
 
-    // Update Users
-    setUsers(prev => prev.map(u => {
-      if (u.id === identifier || u.studentId === identifier || u.email.toLowerCase() === cleanId) {
-        return { ...u, approvalStatus: 'APPROVED', isActivated: true };
-      }
-      return u;
-    }));
-
-    // Update Students
-    const savedStudents = localStorage.getItem('bjjcron_students');
-    if (savedStudents) {
-      const studentsList = JSON.parse(savedStudents);
-      const updated = studentsList.map((s: any) => {
-        if (s.id === identifier || s.email.toLowerCase() === cleanId) {
-          return { ...s, approvalStatus: 'APPROVED', active: true };
+    // 1. Update Users in React state, Firestore, localStorage, and API
+    setUsers(prev => {
+      const updatedList = prev.map(u => {
+        if (
+          u.id === identifier || 
+          u.studentId === identifier || 
+          (u.email && u.email.trim().toLowerCase() === cleanId) ||
+          (u.studentId && u.studentId.trim().toLowerCase() === cleanId)
+        ) {
+          const updatedUser = { ...u, approvalStatus: 'APPROVED' as const, isActivated: true };
+          saveToFirestore('users', updatedUser);
+          fetch(`/api/users/${encodeURIComponent(u.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ approvalStatus: 'APPROVED', isActivated: true })
+          }).catch(() => {});
+          return updatedUser;
         }
-        return s;
+        return u;
       });
-      localStorage.setItem('bjjcron_students', JSON.stringify(updated));
+      localStorage.setItem('bjjcron_users', JSON.stringify(updatedList));
+      return updatedList;
+    });
+
+    // 2. Update Students in localStorage, Firestore, and API
+    try {
+      const savedStudents = localStorage.getItem('bjjcron_students');
+      if (savedStudents) {
+        const studentsList = JSON.parse(savedStudents);
+        const updatedStudents = studentsList.map((s: any) => {
+          if (
+            s.id === identifier || 
+            (s.email && s.email.trim().toLowerCase() === cleanId) ||
+            (s.registrationNumber && s.registrationNumber.trim().toLowerCase() === cleanId)
+          ) {
+            const updatedSt = { ...s, approvalStatus: 'APPROVED', active: true };
+            saveToFirestore('students', updatedSt);
+            return updatedSt;
+          }
+          return s;
+        });
+        localStorage.setItem('bjjcron_students', JSON.stringify(updatedStudents));
+      }
+    } catch (e) {
+      console.error('Error updating students in approveUser:', e);
     }
+
     fetch('/api/students/' + encodeURIComponent(identifier), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ approvalStatus: 'APPROVED', active: true })
     }).catch(() => {});
+
+    fetch('/api/users/' + encodeURIComponent(identifier), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approvalStatus: 'APPROVED', isActivated: true })
+    }).catch(() => {});
+
     window.dispatchEvent(new Event('bjjcron_users_updated'));
     window.dispatchEvent(new Event('bjjcron_students_updated'));
   };

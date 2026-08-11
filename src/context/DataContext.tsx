@@ -338,9 +338,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const merged = data.map(cloudSt => {
             const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
             if (localSt) {
+              const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED';
+              const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'PENDING');
               return {
                 ...cloudSt,
                 ...localSt,
+                approvalStatus: bestApproval,
+                active: bestApproval === 'APPROVED' ? true : (localSt.active ?? cloudSt.active),
                 name: localSt.name || cloudSt.name,
                 email: localSt.email || cloudSt.email,
                 phone: localSt.phone || cloudSt.phone,
@@ -530,9 +534,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateStudent = (id: string, updates: Partial<Student>) => {
     let updatedStudent: Student | null = null;
+    const cleanId = id.trim().toLowerCase();
     setStudents(prev => {
       const updated = prev.map(s => {
-        if (s.id === id) {
+        if (
+          s.id === id || 
+          (s.email && s.email.trim().toLowerCase() === cleanId) ||
+          (s.registrationNumber && s.registrationNumber.trim().toLowerCase() === cleanId)
+        ) {
           updatedStudent = { ...s, ...updates };
           return updatedStudent;
         }
