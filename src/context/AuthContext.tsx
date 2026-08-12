@@ -2,7 +2,19 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, BeltType, AgeCategory, WeightCategory } from '../types';
 import { INITIAL_USERS } from '../data/mockData';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
-import { subscribeFirestoreCollection, saveToFirestore } from '../lib/firebaseStore';
+import { subscribeFirestoreCollection, saveToFirestore, removeFromFirestore } from '../lib/firebaseStore';
+
+const isTestMockRecord = (val: string | undefined | null): boolean => {
+  if (!val) return false;
+  const str = String(val).toLowerCase().trim();
+  return (
+    str.includes('std-pending-') ||
+    str.includes('user-student-pending-') ||
+    str === 'bruno.solicitacao@email.com' ||
+    str === 'rafael.trovao@email.com' ||
+    str === 'camila.oliveira@email.com'
+  );
+};
 
 export interface LoginResult {
   success: boolean;
@@ -231,6 +243,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 1. Merge cloud users with local state
         cList.forEach((u: User) => {
+          if (isTestMockRecord(u.id) || isTestMockRecord(u.email) || isTestMockRecord(u.studentId)) {
+            removeFromFirestore('users', u.id);
+            if (u.studentId) removeFromFirestore('students', u.studentId);
+            return;
+          }
+
           const stMatch = studentsList.find((s: any) => 
             (s.id && u.studentId && s.id === u.studentId) || 
             (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
@@ -256,6 +274,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 2. Preserve local users missing from cloud
         prev.forEach(localU => {
+          if (isTestMockRecord(localU.id) || isTestMockRecord(localU.email) || isTestMockRecord(localU.studentId)) {
+            return;
+          }
           const exists = merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.trim().toLowerCase() === localU.email.trim().toLowerCase()));
           if (!exists) {
             merged.push(localU);
@@ -265,7 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 3. Ensure student records exist for all ALUNO users
         merged.forEach(u => {
-          if (u.role === 'ALUNO') {
+          if (u.role === 'ALUNO' && u.approvalStatus === 'APPROVED' && !isTestMockRecord(u.id) && !isTestMockRecord(u.email)) {
             const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
             const stExists = studentsList.some(s => 
               (u.studentId && s.id === u.studentId) || 
@@ -287,7 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 classesSinceLastGraduation: 0,
                 weightCategory: 'MÉDIO',
                 ageCategory: 'ADULTO',
-                active: u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED',
+                active: true,
                 planName: 'Plano Mensal Padrão',
                 planPrice: 240,
                 paymentDueDateDay: 10,
@@ -989,10 +1010,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const rejectUser = (identifier: string) => {
     const cleanId = identifier.trim().toLowerCase();
 
-    // Filter out from Users state
-    setUsers(prev => prev.filter(u => u.id !== identifier && u.studentId !== identifier && u.email.toLowerCase() !== cleanId));
+    // 1. Delete from Firestore Cloud DB immediately
+    removeFromFirestore('users', identifier);
+    removeFromFirestore('students', identifier);
+    if (cleanId) {
+      removeFromFirestore('users', cleanId);
+      removeFromFirestore('students', cleanId);
+    }
 
-    // Remove from localStorage bjjcron_users
+    // Purge matching users and student IDs from Firestore
+    users.forEach(u => {
+      if (
+        u.id === identifier || 
+        u.studentId === identifier || 
+        (u.email && u.email.trim().toLowerCase() === cleanId)
+      ) {
+        removeFromFirestore('users', u.id);
+        if (u.studentId) removeFromFirestore('students', u.studentId);
+      }
+    });
+
+    // 2. Filter out from Users state
+    setUsers(prev => prev.filter(u => u.id !== identifier && u.studentId !== identifier && (u.email && u.email.toLowerCase() !== cleanId)));
+
+    // 3. Remove from localStorage bjjcron_users
     try {
       const savedUsers = localStorage.getItem('bjjcron_users');
       if (savedUsers) {
@@ -1002,7 +1043,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (e) {}
 
-    // Remove from localStorage bjjcron_students
+    // 4. Remove from localStorage bjjcron_students
     try {
       const savedStudents = localStorage.getItem('bjjcron_students');
       if (savedStudents) {

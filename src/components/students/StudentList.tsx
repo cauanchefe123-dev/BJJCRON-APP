@@ -39,7 +39,7 @@ export const StudentList: React.FC<StudentListProps> = ({
 
   const handleReject = (student: Student) => {
     rejectUser(student.id);
-    updateStudent(student.id, { approvalStatus: 'REJECTED', active: false });
+    deleteStudent(student.id);
   };
 
   const filteredStudents = students.filter(s => {

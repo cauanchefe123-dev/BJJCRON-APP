@@ -120,6 +120,18 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const isTestMockRecord = (val: string | undefined | null): boolean => {
+  if (!val) return false;
+  const str = String(val).toLowerCase().trim();
+  return (
+    str.includes('std-pending-') ||
+    str.includes('user-student-pending-') ||
+    str === 'bruno.solicitacao@email.com' ||
+    str === 'rafael.trovao@email.com' ||
+    str === 'camila.oliveira@email.com'
+  );
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [environmentMode, setEnvironmentModeState] = useState<'PROD' | 'HOMOLOG'>(() => {
     return 'PROD';
@@ -463,6 +475,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 1. Process cloud students
         cloudItems.forEach(cloudSt => {
+          if (isTestMockRecord(cloudSt.id) || isTestMockRecord(cloudSt.email)) {
+            removeFromFirestore('students', cloudSt.id);
+            return;
+          }
+
           const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
           if (localSt) {
             const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED' || (!cloudSt.approvalStatus && !localSt.approvalStatus);
@@ -484,6 +501,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 2. Preserve local students missing from cloud and push them to cloud
         localList.forEach(localSt => {
+          if (isTestMockRecord(localSt.id) || isTestMockRecord(localSt.email)) {
+            return;
+          }
           const exists = merged.some(m => m.id === localSt.id || (m.email && localSt.email && m.email.trim().toLowerCase() === localSt.email.trim().toLowerCase()));
           if (!exists) {
             merged.push(localSt);
@@ -497,7 +517,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (savedUsersStr) {
             const allUsers: any[] = JSON.parse(savedUsersStr);
             allUsers.forEach(u => {
-              if (u.role === 'ALUNO') {
+              if (u.role === 'ALUNO' && u.approvalStatus === 'APPROVED' && !isTestMockRecord(u.id) && !isTestMockRecord(u.email)) {
                 const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
                 const exists = merged.some(s => 
                   (u.studentId && s.id === u.studentId) || 
@@ -785,12 +805,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteStudent = (id: string) => {
+    const targetStudent = students.find(s => s.id === id);
     setStudents(prev => {
       const updated = prev.filter(s => s.id !== id);
       safeSave('bjjcron_students', updated);
       return updated;
     });
+
     removeFromFirestore('students', id);
+    if (targetStudent && targetStudent.email) {
+      removeFromFirestore('students', targetStudent.email.trim().toLowerCase());
+    }
+
+    try {
+      const savedUsersStr = localStorage.getItem('bjjcron_users');
+      if (savedUsersStr) {
+        const usersList: any[] = JSON.parse(savedUsersStr);
+        const targetEmail = targetStudent?.email?.trim().toLowerCase();
+        const matchedUsers = usersList.filter(u => u.studentId === id || (targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail));
+        matchedUsers.forEach(u => {
+          removeFromFirestore('users', u.id);
+        });
+        const updatedUsers = usersList.filter(u => u.studentId !== id && (!targetEmail || !u.email || u.email.trim().toLowerCase() !== targetEmail));
+        localStorage.setItem('bjjcron_users', JSON.stringify(updatedUsers));
+        window.dispatchEvent(new Event('bjjcron_users_updated'));
+      }
+    } catch (e) {}
+
     fetch(`/api/students/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
     window.dispatchEvent(new Event('bjjcron_students_updated'));
   };
