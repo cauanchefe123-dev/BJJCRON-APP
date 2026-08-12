@@ -105,6 +105,12 @@ interface DataContextType {
   // Config Actions
   updateAcademyConfig: (updates: Partial<AcademyConfig>) => void;
 
+  // Environment Mode (Homologação vs Operação Real)
+  environmentMode: 'PROD' | 'HOMOLOG';
+  isHomologationMode: boolean;
+  setEnvironmentMode: (mode: 'PROD' | 'HOMOLOG') => void;
+  resetHomologationData: () => void;
+
   // System Helpers
   resetToDefaultData: () => void;
   clearAllDataToEmpty: () => void;
@@ -115,8 +121,19 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [environmentMode, setEnvironmentModeState] = useState<'PROD' | 'HOMOLOG'>(() => {
+    const saved = localStorage.getItem('bjjcron_env_mode');
+    return saved === 'HOMOLOG' ? 'HOMOLOG' : 'PROD';
+  });
+
   const [students, setStudents] = useState<Student[]>(() => {
-    const saved = localStorage.getItem('bjjcron_students');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}students`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
+      return INITIAL_STUDENTS;
+    }
     const rawList: Student[] = saved ? JSON.parse(saved) : [];
     return rawList.map(s => ({
       ...s,
@@ -125,7 +142,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    const saved = localStorage.getItem('bjjcron_teachers');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}teachers`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
+      return INITIAL_TEACHERS;
+    }
     const rawList: Teacher[] = saved ? JSON.parse(saved) : [];
     return rawList.map(t => ({
       ...t,
@@ -134,37 +157,79 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [classes, setClasses] = useState<BJJClass[]>(() => {
-    const saved = localStorage.getItem('bjjcron_classes');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}classes`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
+      return INITIAL_CLASSES;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
   const [attendances, setAttendances] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('bjjcron_attendances');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}attendances`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
+      return INITIAL_ATTENDANCE;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
   const [payments, setPayments] = useState<PaymentRecord[]>(() => {
-    const saved = localStorage.getItem('bjjcron_payments');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}payments`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_payments', JSON.stringify(INITIAL_PAYMENTS));
+      return INITIAL_PAYMENTS;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
   const [graduations, setGraduations] = useState<Graduation[]>(() => {
-    const saved = localStorage.getItem('bjjcron_graduations');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}graduations`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_graduations', JSON.stringify(INITIAL_GRADUATIONS));
+      return INITIAL_GRADUATIONS;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
   const [beltRequests, setBeltRequests] = useState<BeltChangeRequest[]>(() => {
-    const saved = localStorage.getItem('bjjcron_belt_requests');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}belt_requests`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_belt_requests', JSON.stringify(INITIAL_BELT_REQUESTS));
+      return INITIAL_BELT_REQUESTS;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
   const [trainingLogs, setTrainingLogs] = useState<TrainingLog[]>(() => {
-    const saved = localStorage.getItem('bjjcron_training_logs');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}training_logs`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_training_logs', JSON.stringify(INITIAL_TRAINING_LOGS));
+      return INITIAL_TRAINING_LOGS;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
   const [teacherObservations, setTeacherObservations] = useState<TeacherObservation[]>(() => {
-    const saved = localStorage.getItem('bjjcron_teacher_observations');
+    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
+    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+    const saved = localStorage.getItem(`${prefix}teacher_observations`);
+    if (!saved && env === 'HOMOLOG') {
+      localStorage.setItem('bjjcron_homolog_teacher_observations', JSON.stringify(INITIAL_TEACHER_OBSERVATIONS));
+      return INITIAL_TEACHER_OBSERVATIONS;
+    }
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -211,16 +276,87 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   // Safe Local Storage Persistence
-  const safeSave = (key: string, val: any) => {
+  const safeSave = (baseKeyName: string, val: any) => {
     try {
+      const prefix = environmentMode === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+      const cleanName = baseKeyName.startsWith('bjjcron_') ? baseKeyName.replace('bjjcron_', '') : baseKeyName;
+      const targetKey = `${prefix}${cleanName}`;
       const serialized = JSON.stringify(val);
       if (serialized.length > 4000000) { // Limit to ~4MB to prevent browser tab crash
-        console.warn(`[Storage] Dados para ${key} excedem 4MB, ignorando persistência no localStorage para evitar travamento.`);
+        console.warn(`[Storage] Dados para ${targetKey} excedem 4MB, ignorando persistência.`);
         return;
       }
-      localStorage.setItem(key, serialized);
+      localStorage.setItem(targetKey, serialized);
     } catch (e) {
-      console.warn(`[Offline-First] Aviso ao salvar chave ${key} no localStorage (possível limite de cota atingido):`, e);
+      console.warn(`[Offline-First] Aviso ao salvar chave no localStorage:`, e);
+    }
+  };
+
+  const setEnvironmentMode = (mode: 'PROD' | 'HOMOLOG') => {
+    localStorage.setItem('bjjcron_env_mode', mode);
+    setEnvironmentModeState(mode);
+
+    const prefix = mode === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+
+    if (mode === 'HOMOLOG') {
+      const existing = localStorage.getItem('bjjcron_homolog_students');
+      if (!existing) {
+        localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
+        localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
+        localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
+        localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
+        localStorage.setItem('bjjcron_homolog_payments', JSON.stringify(INITIAL_PAYMENTS));
+        localStorage.setItem('bjjcron_homolog_graduations', JSON.stringify(INITIAL_GRADUATIONS));
+        localStorage.setItem('bjjcron_homolog_belt_requests', JSON.stringify(INITIAL_BELT_REQUESTS));
+        localStorage.setItem('bjjcron_homolog_training_logs', JSON.stringify(INITIAL_TRAINING_LOGS));
+        localStorage.setItem('bjjcron_homolog_teacher_observations', JSON.stringify(INITIAL_TEACHER_OBSERVATIONS));
+      }
+    }
+
+    const savedStudents = localStorage.getItem(`${prefix}students`);
+    const savedTeachers = localStorage.getItem(`${prefix}teachers`);
+    const savedClasses = localStorage.getItem(`${prefix}classes`);
+    const savedAttendances = localStorage.getItem(`${prefix}attendances`);
+    const savedPayments = localStorage.getItem(`${prefix}payments`);
+    const savedGraduations = localStorage.getItem(`${prefix}graduations`);
+    const savedBeltRequests = localStorage.getItem(`${prefix}belt_requests`);
+    const savedLogs = localStorage.getItem(`${prefix}training_logs`);
+    const savedObs = localStorage.getItem(`${prefix}teacher_observations`);
+
+    setStudents(savedStudents ? JSON.parse(savedStudents) : []);
+    setTeachers(savedTeachers ? JSON.parse(savedTeachers) : []);
+    setClasses(savedClasses ? JSON.parse(savedClasses) : []);
+    setAttendances(savedAttendances ? JSON.parse(savedAttendances) : []);
+    setPayments(savedPayments ? JSON.parse(savedPayments) : []);
+    setGraduations(savedGraduations ? JSON.parse(savedGraduations) : []);
+    setBeltRequests(savedBeltRequests ? JSON.parse(savedBeltRequests) : []);
+    setTrainingLogs(savedLogs ? JSON.parse(savedLogs) : []);
+    setTeacherObservations(savedObs ? JSON.parse(savedObs) : []);
+
+    window.dispatchEvent(new Event('bjjcron_env_changed'));
+  };
+
+  const resetHomologationData = () => {
+    localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
+    localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
+    localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
+    localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
+    localStorage.setItem('bjjcron_homolog_payments', JSON.stringify(INITIAL_PAYMENTS));
+    localStorage.setItem('bjjcron_homolog_graduations', JSON.stringify(INITIAL_GRADUATIONS));
+    localStorage.setItem('bjjcron_homolog_belt_requests', JSON.stringify(INITIAL_BELT_REQUESTS));
+    localStorage.setItem('bjjcron_homolog_training_logs', JSON.stringify(INITIAL_TRAINING_LOGS));
+    localStorage.setItem('bjjcron_homolog_teacher_observations', JSON.stringify(INITIAL_TEACHER_OBSERVATIONS));
+
+    if (environmentMode === 'HOMOLOG') {
+      setStudents(INITIAL_STUDENTS);
+      setTeachers(INITIAL_TEACHERS);
+      setClasses(INITIAL_CLASSES);
+      setAttendances(INITIAL_ATTENDANCE);
+      setPayments(INITIAL_PAYMENTS);
+      setGraduations(INITIAL_GRADUATIONS);
+      setBeltRequests(INITIAL_BELT_REQUESTS);
+      setTrainingLogs(INITIAL_TRAINING_LOGS);
+      setTeacherObservations(INITIAL_TEACHER_OBSERVATIONS);
     }
   };
 
@@ -1423,6 +1559,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateTeacherObservation,
       deleteTeacherObservation,
       updateAcademyConfig,
+      environmentMode,
+      isHomologationMode: environmentMode === 'HOMOLOG',
+      setEnvironmentMode,
+      resetHomologationData,
       resetToDefaultData,
       clearAllDataToEmpty,
       exportDatabaseJSON,
