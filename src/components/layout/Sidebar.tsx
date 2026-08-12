@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: 'dashboard', label: 'Painel Geral', icon: LayoutDashboard, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
     { id: 'students-dashboard', label: 'Dashboard dos Alunos', icon: GraduationCap, roles: ['ADMIN'] },
-    { id: 'attendance', label: 'Frequência & QR Code', icon: QrCode, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
+    { id: 'attendance', label: 'Controle de Frequência', icon: UserCheck, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
     { id: 'academies', label: 'Vincular à Academia', icon: Shield, roles: ['PROFESSOR', 'ALUNO'] },
     { id: 'students', label: 'Alunos & Graduações', icon: Users, roles: ['ADMIN', 'PROFESSOR'] },
     { id: 'teachers', label: 'Professores & Staff', icon: UserCheck, roles: ['ADMIN', 'PROFESSOR'] },

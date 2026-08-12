@@ -3,7 +3,7 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { resolveStudentForUser } from '../../constants/avatar';
 import { checkClassCheckinAvailability } from '../../utils/checkin';
-import { QrCode, CheckCircle2, AlertCircle, X, Search, Camera, Sparkles, Clock, Lock, Check } from 'lucide-react';
+import { UserCheck, CheckCircle2, AlertCircle, X, Search, Sparkles, Clock, Lock, Check } from 'lucide-react';
 
 interface QRCodeCheckinModalProps {
   isOpen: boolean;
@@ -28,34 +28,37 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
   const handleCheckin = (tokenToUse?: string) => {
     const token = tokenToUse || inputToken.trim();
     
-    // If student logged in and clicks check-in without token, use their own token
-    const effectiveToken = token || (currentUser?.role === 'ALUNO' ? loggedInStudent?.qrCodeToken : '');
+    // If student logged in and clicks check-in without token, use their own token/id
+    const effectiveToken = token || (currentUser?.role === 'ALUNO' ? (loggedInStudent?.id || loggedInStudent?.registrationNumber) : '');
 
     if (!effectiveToken) {
       setFeedback({
         success: false,
-        message: 'Por favor, informe uma matrícula ou token de QR Code.',
+        message: 'Por favor, informe o nome ou matrícula do atleta.',
       });
       return;
     }
 
-    // Search student by token, registration number, or id
+    // Search student by registration number, id, token, or name match
+    const cleanSearch = effectiveToken.toLowerCase();
     const found = students.find(
-      s => s.qrCodeToken.toLowerCase() === effectiveToken.toLowerCase() ||
-           s.registrationNumber.toLowerCase() === effectiveToken.toLowerCase() ||
-           s.id === effectiveToken
+      s => s.id === effectiveToken ||
+           s.registrationNumber.toLowerCase() === cleanSearch ||
+           s.qrCodeToken.toLowerCase() === cleanSearch ||
+           s.name.toLowerCase() === cleanSearch ||
+           s.name.toLowerCase().includes(cleanSearch)
     );
 
     if (!found) {
       setFeedback({
         success: false,
-        message: 'Código inválido! Atleta não localizado com esse código ou QR Code.',
+        message: 'Atleta não localizado com essa matrícula ou nome.',
       });
       return;
     }
 
     const isTeacherRole = currentUser?.role === 'ADMIN' || currentUser?.role === 'PROFESSOR';
-    const method = currentUser?.role === 'ALUNO' ? 'QR_CODE_STUDENT' : 'QR_CODE_TEACHER';
+    const method = 'MANUAL';
     const verifierName = currentUser?.name || 'Sistema';
 
     const res = recordAttendance(
@@ -77,18 +80,18 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 text-white space-y-5 shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+          className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-            <QrCode className="w-5 h-5" />
+            <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-slate-100">Check-in & Presença na Aula</h3>
-            <p className="text-xs text-slate-400">Confirmação de frequência no tatame</p>
+            <h3 className="font-bold text-lg text-slate-100">Registrar Presença na Aula</h3>
+            <p className="text-xs text-slate-400">Chamada normal e confirmação de frequência</p>
           </div>
         </div>
 
@@ -138,10 +141,10 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
             <div className="space-y-0.5">
               <p className="font-bold text-xs">
                 {availability.isAvailable
-                  ? `Check-in LIBERADO para ${currentClass?.title}`
+                  ? `Presença LIBERADA para ${currentClass?.title}`
                   : availability.status === 'TOO_EARLY'
                   ? `Liberado a partir das ${availability.opensAtStr}`
-                  : 'Check-in Bloqueado'}
+                  : 'Presença Bloqueada'}
               </p>
               <p className="text-[11px] opacity-90">
                 {availability.isAvailable
@@ -185,7 +188,7 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
             </div>
 
             <button
-              onClick={() => handleCheckin(loggedInStudent.qrCodeToken)}
+              onClick={() => handleCheckin(loggedInStudent.id)}
               disabled={!availability?.isAvailable}
               className={`w-full py-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${
                 availability?.isAvailable
@@ -193,8 +196,8 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
                   : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
               }`}
             >
-              <QrCode className="w-4 h-4" />
-              {availability?.isAvailable ? 'Confirmar Minha Presença na Aula' : `Check-in Bloqueado (Abre às ${availability?.opensAtStr})`}
+              <UserCheck className="w-4 h-4" />
+              {availability?.isAvailable ? 'Confirmar Minha Presença na Aula' : `Presença Bloqueada (Abre às ${availability?.opensAtStr})`}
             </button>
           </div>
         )}
@@ -203,7 +206,7 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
         <div className="space-y-4">
           {(currentUser?.role === 'ADMIN' || currentUser?.role === 'PROFESSOR') && (
             <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-xs">
-              <span className="text-slate-300 font-medium">Bypass Manual (Professor / Admin):</span>
+              <span className="text-slate-300 font-medium">Lançamento Especial (Professor / Admin):</span>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -218,20 +221,20 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
 
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-300 block">
-              Digitação de Matrícula / Token de Outro Atleta:
+              Digitação de Nome ou Matrícula do Atleta:
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Ex: BJJ-2026-001 ou Token"
+                placeholder="Ex: Nome do aluno ou BJJ-2026-001"
                 value={inputToken}
                 onChange={(e) => setInputToken(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCheckin()}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
               />
               <button
                 onClick={() => handleCheckin()}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-all"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-all cursor-pointer"
               >
                 Confirmar
               </button>
@@ -244,12 +247,12 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
                 Lista de Atletas para Chamada Rápida:
               </span>
-              <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+              <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
                 {students.filter(s => s.active).map(s => (
                   <button
                     key={s.id}
-                    onClick={() => handleCheckin(s.qrCodeToken)}
-                    className="w-full flex items-center justify-between p-2 rounded-lg bg-slate-950/80 hover:bg-slate-800 border border-slate-800/80 text-left text-xs text-slate-200 transition-all"
+                    onClick={() => handleCheckin(s.id)}
+                    className="w-full flex items-center justify-between p-2 rounded-lg bg-slate-950/80 hover:bg-slate-800 border border-slate-800/80 text-left text-xs text-slate-200 transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <img src={s.photoUrl} alt={s.name} className="w-6 h-6 rounded-full object-cover" />
@@ -266,3 +269,4 @@ export const QRCodeCheckinModal: React.FC<QRCodeCheckinModalProps> = ({ isOpen, 
     </div>
   );
 };
+

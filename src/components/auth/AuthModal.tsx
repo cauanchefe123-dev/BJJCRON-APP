@@ -586,7 +586,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     Cadastro de Professor / Instrutor
                   </p>
                   <p className="text-[11px] text-slate-300 mt-0.5">
-                    Acesso para ministrar turmas, lançar presenças via QR Code e gerenciar alunos.
+                    Acesso para ministrar turmas, lançar presenças de aula e gerenciar alunos.
                   </p>
                 </div>
 

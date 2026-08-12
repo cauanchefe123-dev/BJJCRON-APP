@@ -3,7 +3,7 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { BeltBadge } from '../belts/BeltBadge';
 import { PendingStudentApprovals } from '../students/PendingStudentApprovals';
-import { QrCode, CalendarDays, Award, Users, CheckCircle, Flame, Clock, Megaphone, Send, X, Sparkles, Target, Edit3, Video, Play, Loader2, ArrowUpRight } from 'lucide-react';
+import { QrCode, CalendarDays, Award, Users, CheckCircle, Flame, Clock, Megaphone, Send, X, Sparkles, Target, Edit3, Video, Play, Loader2, ArrowUpRight, UserCheck } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
 import { uploadVideoFile } from '../../lib/videoUpload';
@@ -78,24 +78,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigate, 
             Controle de Tatame e Aulas
           </h2>
           <p className="text-xs text-slate-300">
-            Realize chamadas por QR Code, acompanhe a evolução técnica e agende exames de faixa.
+            Realize chamadas de aula, acompanhe a evolução técnica e agende exames de faixa.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setIsNoticeModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all cursor-pointer"
           >
             <Megaphone className="w-4 h-4" />
             Disparar Aviso Push aos Alunos
           </button>
           <button
             onClick={onOpenCheckin}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shadow-lg border border-slate-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shadow-lg border border-slate-700 transition-all cursor-pointer"
           >
-            <QrCode className="w-4 h-4 text-amber-400" />
-            Escanear Presença
+            <UserCheck className="w-4 h-4 text-amber-400" />
+            Registrar Presença
           </button>
           <button
             onClick={() => onNavigate('timer')}

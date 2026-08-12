@@ -2,7 +2,7 @@ import React from 'react';
 import { useData } from '../../context/DataContext';
 import { BeltBadge } from '../belts/BeltBadge';
 import { PendingStudentApprovals } from '../students/PendingStudentApprovals';
-import { Users, CreditCard, Award, QrCode, TrendingUp, AlertCircle, CheckCircle, Calendar, ArrowUpRight } from 'lucide-react';
+import { Users, CreditCard, Award, QrCode, TrendingUp, AlertCircle, CheckCircle, Calendar, ArrowUpRight, UserCheck } from 'lucide-react';
 import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
 
 interface AdminDashboardProps {
@@ -59,10 +59,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         <div className="flex items-center gap-3">
           <button
             onClick={onOpenCheckin}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition-all cursor-pointer"
           >
-            <QrCode className="w-4 h-4" />
-            Check-in QR Code
+            <UserCheck className="w-4 h-4" />
+            Registrar Presença
           </button>
           <button
             onClick={() => onNavigate('students')}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { QrCode, Calendar, CheckCircle2, Trash2, Search, Filter, Sparkles, UserCheck } from 'lucide-react';
+import { UserCheck, Calendar, CheckCircle2, Trash2, Search, Filter, Sparkles } from 'lucide-react';
 
 interface AttendanceManagerProps {
   onOpenCheckin: () => void;
@@ -34,20 +34,20 @@ export const AttendanceManager: React.FC<AttendanceManagerProps> = ({ onOpenChec
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
         <div>
           <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-amber-400" />
+            <UserCheck className="w-5 h-5 text-amber-400" />
             Controle de Frequência & Presenças
           </h3>
           <p className="text-xs text-slate-400">
-            Registro em tempo real de presença dos atletas via QR Code e chamadas.
+            Registro em tempo real de presença dos atletas no tatame e chamadas.
           </p>
         </div>
 
         <button
           onClick={onOpenCheckin}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition-all cursor-pointer"
         >
-          <QrCode className="w-4 h-4" />
-          Registrar Presença / QR Code
+          <UserCheck className="w-4 h-4" />
+          Registrar Presença
         </button>
       </div>
 
@@ -127,8 +127,8 @@ export const AttendanceManager: React.FC<AttendanceManagerProps> = ({ onOpenChec
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                          {a.method === 'QR_CODE_STUDENT' ? 'QR Code Aluno' : a.method === 'QR_CODE_TEACHER' ? 'QR Leitor Tatame' : 'Chamada Manual'}
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          {a.method === 'MANUAL' ? 'Chamada Normal' : 'Presença Confirmada'}
                         </span>
                       </td>
 

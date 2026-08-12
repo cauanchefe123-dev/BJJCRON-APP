@@ -38,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const tabTitles: Record<string, string> = {
     dashboard: 'Painel Principal',
-    attendance: 'Controle de Frequência & QR Code',
+    attendance: 'Controle de Frequência',
     students: 'Alunos & Graduações',
     classes: 'Turmas & Horários de Treino',
     card: 'Minha Carteirinha Digital',
@@ -79,24 +79,24 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Quick QR Scan Button for Professor/Admin */}
+          {/* Quick Checkin Button for Professor/Admin */}
           {(currentUser?.role === 'PROFESSOR' || currentUser?.role === 'ADMIN') && onOpenQuickScan && (
             <>
               {/* Mobile Icon-only Button */}
               <button
                 onClick={onOpenQuickScan}
-                className="flex sm:hidden p-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md transition-all active:scale-95"
-                title="Escanear QR Presença"
+                className="flex sm:hidden p-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                title="Registrar Presença"
               >
-                <QrCode className="w-4 h-4" />
+                <UserCheck className="w-4 h-4" />
               </button>
               {/* Desktop Full Button */}
               <button
                 onClick={onOpenQuickScan}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
               >
-                <QrCode className="w-4 h-4" />
-                Escanear QR Presença
+                <UserCheck className="w-4 h-4" />
+                Registrar Presença
               </button>
             </>
           )}
