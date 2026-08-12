@@ -207,10 +207,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
     const saved = localStorage.getItem(`${prefix}training_logs`);
     if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_training_logs', JSON.stringify(INITIAL_TRAINING_LOGS));
-      return INITIAL_TRAINING_LOGS;
+      localStorage.setItem('bjjcron_homolog_training_logs', JSON.stringify([]));
+      return [];
     }
-    return saved ? JSON.parse(saved) : [];
+    const parsed: TrainingLog[] = saved ? JSON.parse(saved) : [];
+    return parsed.filter(l => l.id !== 'log-1' && l.id !== 'log-2' && l.studentId !== 'std-1');
   });
 
   const [teacherObservations, setTeacherObservations] = useState<TeacherObservation[]>(() => {
@@ -476,19 +477,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
 
-          const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
+          const cleanCloudEmail = cloudSt.email ? cloudSt.email.trim().toLowerCase() : '';
+          const cleanCloudName = cloudSt.name ? cloudSt.name.trim().toLowerCase() : '';
+
+          const localSt = localList.find(s => 
+            s.id === cloudSt.id || 
+            (cleanCloudEmail && s.email && s.email.trim().toLowerCase() === cleanCloudEmail) ||
+            (cleanCloudName && s.name && s.name.trim().toLowerCase() === cleanCloudName)
+          );
+
           if (localSt) {
             const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED' || (!cloudSt.approvalStatus && !localSt.approvalStatus);
             const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'APPROVED');
             merged.push({
-              ...cloudSt,
               ...localSt,
+              ...cloudSt,
               approvalStatus: bestApproval,
-              active: bestApproval === 'APPROVED' ? true : (localSt.active ?? cloudSt.active),
-              name: localSt.name || cloudSt.name,
-              email: localSt.email || cloudSt.email,
-              phone: localSt.phone || cloudSt.phone,
-              photoUrl: localSt.photoUrl || cloudSt.photoUrl,
+              active: bestApproval === 'APPROVED' ? true : (cloudSt.active ?? localSt.active ?? true),
+              name: cloudSt.name || localSt.name,
+              email: cloudSt.email || localSt.email,
+              phone: cloudSt.phone || localSt.phone,
+              photoUrl: (cloudSt.photoUrl && !cloudSt.photoUrl.includes('unsplash.com')) ? cloudSt.photoUrl : (localSt.photoUrl || DEFAULT_BLACK_GI_AVATAR),
+              belt: cloudSt.belt || localSt.belt || 'BRANCA',
+              stripes: cloudSt.stripes !== undefined ? cloudSt.stripes : (localSt.stripes || 0),
+              startDate: cloudSt.startDate || localSt.startDate || new Date().toISOString().split('T')[0],
+              totalClassesAttended: Math.max(cloudSt.totalClassesAttended || 0, localSt.totalClassesAttended || 0),
+              classesSinceLastGraduation: Math.max(cloudSt.classesSinceLastGraduation || 0, localSt.classesSinceLastGraduation || 0),
             });
           } else {
             if (!isDeletedRecord(cloudSt.id, cloudSt.email, cloudSt.registrationNumber)) {
@@ -507,7 +521,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ) {
             return;
           }
-          const exists = merged.some(m => m.id === localSt.id || (m.email && localSt.email && m.email.trim().toLowerCase() === localSt.email.trim().toLowerCase()));
+          const cleanLocEmail = localSt.email ? localSt.email.trim().toLowerCase() : '';
+          const cleanLocName = localSt.name ? localSt.name.trim().toLowerCase() : '';
+
+          const exists = merged.some(m => 
+            m.id === localSt.id || 
+            (cleanLocEmail && m.email && m.email.trim().toLowerCase() === cleanLocEmail) ||
+            (cleanLocName && m.name && m.name.trim().toLowerCase() === cleanLocName)
+          );
           if (!exists) {
             merged.push(localSt);
             saveToFirestore('students', localSt);
@@ -529,9 +550,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 !isDeletedRecord(u.id, u.email, u.studentId)
               ) {
                 const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
+                const cleanUName = u.name ? u.name.trim().toLowerCase() : '';
                 const exists = merged.some(s => 
                   (u.studentId && s.id === u.studentId) || 
-                  (cleanUEmail && s.email && s.email.trim().toLowerCase() === cleanUEmail)
+                  (cleanUEmail && s.email && s.email.trim().toLowerCase() === cleanUEmail) ||
+                  (cleanUName && s.name && s.name.trim().toLowerCase() === cleanUName)
                 );
                 if (!exists) {
                   const autoStudent: Student = {
@@ -583,6 +606,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubAttendances = subscribeFirestoreCollection<AttendanceRecord>('attendances', (data) => {
       setAttendances(data);
+      if (data && data.length > 0) {
+        setStudents(prev => {
+          let updated = false;
+          const newList = prev.map(s => {
+            const count = data.filter(a => 
+              a.studentId === s.id || 
+              (s.name && a.studentName && a.studentName.trim().toLowerCase() === s.name.trim().toLowerCase())
+            ).length;
+            if (count > (s.totalClassesAttended || 0)) {
+              updated = true;
+              return { ...s, totalClassesAttended: count };
+            }
+            return s;
+          });
+          if (updated) {
+            safeSave('bjjcron_students', newList);
+            return newList;
+          }
+          return prev;
+        });
+      }
     });
 
     const unsubPayments = subscribeFirestoreCollection<PaymentRecord>('payments', (data) => {
@@ -591,6 +635,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubGraduations = subscribeFirestoreCollection<Graduation>('graduations', (data) => {
       setGraduations(data);
+      if (data && data.length > 0) {
+        setStudents(prev => {
+          let updated = false;
+          const newList = prev.map(s => {
+            const studentGrads = data.filter(g => g.studentId === s.id);
+            if (studentGrads.length > 0) {
+              studentGrads.sort((a,b) => new Date(b.promotedAt).getTime() - new Date(a.promotedAt).getTime());
+              const latestGrad = studentGrads[0];
+              if (latestGrad.belt && (latestGrad.belt !== s.belt || latestGrad.stripes !== s.stripes)) {
+                updated = true;
+                return { ...s, belt: latestGrad.belt, stripes: latestGrad.stripes ?? s.stripes };
+              }
+            }
+            return s;
+          });
+          if (updated) {
+            safeSave('bjjcron_students', newList);
+            return newList;
+          }
+          return prev;
+        });
+      }
     });
 
     const unsubBeltRequests = subscribeFirestoreCollection<BeltChangeRequest>('beltRequests', (data) => {
@@ -598,7 +664,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const unsubTrainingLogs = subscribeFirestoreCollection<TrainingLog>('trainingLogs', (data) => {
-      setTrainingLogs(data);
+      const realLogs = (data || []).filter(l => 
+        l.id !== 'log-1' && 
+        l.id !== 'log-2' && 
+        l.studentId !== 'std-1' &&
+        !isTestMockRecord(l.id) && 
+        !isTestMockRecord(l.studentId)
+      );
+      setTrainingLogs(realLogs);
+      safeSave('bjjcron_training_logs', realLogs);
     });
 
     const unsubTeacherObs = subscribeFirestoreCollection<TeacherObservation>('teacherObservations', (data) => {

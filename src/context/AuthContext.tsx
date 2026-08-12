@@ -98,8 +98,10 @@ const getSyncedInitialUsers = (): User[] => {
           return;
         }
         const cleanEmail = std.email ? std.email.trim().toLowerCase() : '';
+        const cleanName = std.name ? std.name.trim().toLowerCase() : '';
         const existingIdx = baseUsers.findIndex(u => 
-          (cleanEmail && u.email.trim().toLowerCase() === cleanEmail) || 
+          (cleanEmail && u.email && u.email.trim().toLowerCase() === cleanEmail) || 
+          (cleanName && u.name && u.name.trim().toLowerCase() === cleanName) ||
           (u.studentId && u.studentId === std.id)
         );
         if (existingIdx === -1) {
@@ -231,15 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 1. Merge cloud users with local state
         cList.forEach((u: User) => {
-          if (
-            isTestMockRecord(u.id) || 
-            isTestMockRecord(u.email) || 
-            isTestMockRecord(u.name) ||
-            isTestMockRecord(u.studentId) ||
-            isDeletedRecord(u.id, u.email, u.studentId)
-          ) {
-            removeFromFirestore('users', u.id);
-            if (u.studentId) removeFromFirestore('students', u.studentId);
+          if (isDeletedRecord(u.id, u.email, u.studentId)) {
             return;
           }
 
@@ -268,68 +262,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 2. Preserve local users missing from cloud
         prev.forEach(localU => {
-          if (
-            isTestMockRecord(localU.id) || 
-            isTestMockRecord(localU.email) || 
-            isTestMockRecord(localU.name) ||
-            isTestMockRecord(localU.studentId) ||
-            isDeletedRecord(localU.id, localU.email, localU.studentId)
-          ) {
+          if (isDeletedRecord(localU.id, localU.email, localU.studentId)) {
             return;
           }
           const exists = merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.trim().toLowerCase() === localU.email.trim().toLowerCase()));
           if (!exists) {
             merged.push(localU);
             saveToFirestore('users', localU);
-          }
-        });
-
-        // 3. Ensure student records exist for all ALUNO users
-        merged.forEach(u => {
-          if (
-            u.role === 'ALUNO' && 
-            u.approvalStatus === 'APPROVED' && 
-            !isTestMockRecord(u.id) && 
-            !isTestMockRecord(u.email) &&
-            !isTestMockRecord(u.name) &&
-            !isDeletedRecord(u.id, u.email, u.studentId)
-          ) {
-            const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
-            const stExists = studentsList.some(s => 
-              (u.studentId && s.id === u.studentId) || 
-              (cleanUEmail && s.email && s.email.trim().toLowerCase() === cleanUEmail)
-            );
-            if (!stExists) {
-              const newSt = {
-                id: u.studentId || `std-${u.id}`,
-                registrationNumber: `BJJ-2026-${String(studentsList.length + 1).padStart(3, '0')}`,
-                name: u.name,
-                email: u.email,
-                phone: u.phone || '',
-                birthDate: '2000-01-01',
-                photoUrl: u.avatarUrl || DEFAULT_BLACK_GI_AVATAR,
-                belt: 'BRANCA',
-                stripes: 0,
-                startDate: new Date().toISOString().split('T')[0],
-                totalClassesAttended: 0,
-                classesSinceLastGraduation: 0,
-                weightCategory: 'MÉDIO',
-                ageCategory: 'ADULTO',
-                active: true,
-                planName: 'Plano Mensal Padrão',
-                planPrice: 240,
-                paymentDueDateDay: 10,
-                paymentStatus: 'PENDENTE',
-                qrCodeToken: `BJJCRON-${u.studentId || u.id}`,
-                approvalStatus: u.approvalStatus || 'APPROVED',
-                notes: 'Atleta integrado via usuário',
-                hasActivatedAccount: true,
-              };
-              studentsList.push(newSt);
-              localStorage.setItem('bjjcron_students', JSON.stringify(studentsList));
-              saveToFirestore('students', newSt);
-              window.dispatchEvent(new Event('bjjcron_students_updated'));
-            }
           }
         });
 

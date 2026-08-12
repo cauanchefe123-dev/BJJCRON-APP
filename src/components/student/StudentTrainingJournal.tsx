@@ -54,7 +54,7 @@ export const StudentTrainingJournal: React.FC = () => {
   const [sessionType, setSessionType] = useState<'AULA_REGULAR' | 'OPEN_MAT' | 'COMPETICAO' | 'PARTICULAR' | 'TREINO_LIVRE'>('AULA_REGULAR');
   
   const [techInput, setTechInput] = useState('');
-  const [techniques, setTechniques] = useState<string[]>(['Passagem de Guarda Emborcando']);
+  const [techniques, setTechniques] = useState<string[]>([]);
 
   const [subAppliedInput, setSubAppliedInput] = useState('');
   const [submissionsApplied, setSubmissionsApplied] = useState<string[]>([]);
