@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 import { checkClassCheckinAvailability } from '../utils/checkin';
+import { markAsDeleted, isDeletedRecord, isTestMockRecord } from '../lib/deletionTracker';
 
 const getLocalDateStr = (d: Date = new Date()): string => {
   const year = d.getFullYear();
@@ -120,18 +121,6 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const isTestMockRecord = (val: string | undefined | null): boolean => {
-  if (!val) return false;
-  const str = String(val).toLowerCase().trim();
-  return (
-    str.includes('std-pending-') ||
-    str.includes('user-student-pending-') ||
-    str === 'bruno.solicitacao@email.com' ||
-    str === 'rafael.trovao@email.com' ||
-    str === 'camila.oliveira@email.com'
-  );
-};
-
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [environmentMode, setEnvironmentModeState] = useState<'PROD' | 'HOMOLOG'>(() => {
     return 'PROD';
@@ -142,10 +131,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let rawList: Student[] = saved ? JSON.parse(saved) : INITIAL_STUDENTS;
 
     rawList = rawList.filter(s => 
-      !s.id.startsWith('std-pending-') && 
-      s.email !== 'bruno.solicitacao@email.com' && 
-      s.email !== 'rafael.trovao@email.com' && 
-      s.email !== 'camila.oliveira@email.com'
+      !isTestMockRecord(s.id) &&
+      !isTestMockRecord(s.email) &&
+      !isTestMockRecord(s.name) &&
+      !isDeletedRecord(s.id, s.email, s.registrationNumber)
     );
 
     const processed = rawList.map(s => ({
@@ -475,7 +464,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 1. Process cloud students
         cloudItems.forEach(cloudSt => {
-          if (isTestMockRecord(cloudSt.id) || isTestMockRecord(cloudSt.email)) {
+          if (
+            isTestMockRecord(cloudSt.id) || 
+            isTestMockRecord(cloudSt.email) ||
+            isTestMockRecord(cloudSt.name) ||
+            isDeletedRecord(cloudSt.id, cloudSt.email, cloudSt.registrationNumber)
+          ) {
             removeFromFirestore('students', cloudSt.id);
             return;
           }
@@ -495,13 +489,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               photoUrl: localSt.photoUrl || cloudSt.photoUrl,
             });
           } else {
-            merged.push(cloudSt);
+            if (!isDeletedRecord(cloudSt.id, cloudSt.email, cloudSt.registrationNumber)) {
+              merged.push(cloudSt);
+            }
           }
         });
 
         // 2. Preserve local students missing from cloud and push them to cloud
         localList.forEach(localSt => {
-          if (isTestMockRecord(localSt.id) || isTestMockRecord(localSt.email)) {
+          if (
+            isTestMockRecord(localSt.id) || 
+            isTestMockRecord(localSt.email) ||
+            isTestMockRecord(localSt.name) ||
+            isDeletedRecord(localSt.id, localSt.email, localSt.registrationNumber)
+          ) {
             return;
           }
           const exists = merged.some(m => m.id === localSt.id || (m.email && localSt.email && m.email.trim().toLowerCase() === localSt.email.trim().toLowerCase()));
@@ -517,7 +518,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (savedUsersStr) {
             const allUsers: any[] = JSON.parse(savedUsersStr);
             allUsers.forEach(u => {
-              if (u.role === 'ALUNO' && u.approvalStatus === 'APPROVED' && !isTestMockRecord(u.id) && !isTestMockRecord(u.email)) {
+              if (
+                u.role === 'ALUNO' && 
+                u.approvalStatus === 'APPROVED' && 
+                !isTestMockRecord(u.id) && 
+                !isTestMockRecord(u.email) &&
+                !isTestMockRecord(u.name) &&
+                !isDeletedRecord(u.id, u.email, u.studentId)
+              ) {
                 const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
                 const exists = merged.some(s => 
                   (u.studentId && s.id === u.studentId) || 
@@ -806,8 +814,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteStudent = (id: string) => {
     const targetStudent = students.find(s => s.id === id);
+    markAsDeleted(id, targetStudent?.email, targetStudent?.registrationNumber);
+
     setStudents(prev => {
-      const updated = prev.filter(s => s.id !== id);
+      const updated = prev.filter(s => s.id !== id && (s.email && targetStudent?.email ? s.email.trim().toLowerCase() !== targetStudent.email.trim().toLowerCase() : true));
       safeSave('bjjcron_students', updated);
       return updated;
     });
@@ -824,6 +834,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const targetEmail = targetStudent?.email?.trim().toLowerCase();
         const matchedUsers = usersList.filter(u => u.studentId === id || (targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail));
         matchedUsers.forEach(u => {
+          markAsDeleted(u.id, u.email, u.studentId);
           removeFromFirestore('users', u.id);
         });
         const updatedUsers = usersList.filter(u => u.studentId !== id && (!targetEmail || !u.email || u.email.trim().toLowerCase() !== targetEmail));

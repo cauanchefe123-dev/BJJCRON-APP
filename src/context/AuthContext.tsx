@@ -3,18 +3,7 @@ import { User, UserRole, BeltType, AgeCategory, WeightCategory } from '../types'
 import { INITIAL_USERS } from '../data/mockData';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 import { subscribeFirestoreCollection, saveToFirestore, removeFromFirestore } from '../lib/firebaseStore';
-
-const isTestMockRecord = (val: string | undefined | null): boolean => {
-  if (!val) return false;
-  const str = String(val).toLowerCase().trim();
-  return (
-    str.includes('std-pending-') ||
-    str.includes('user-student-pending-') ||
-    str === 'bruno.solicitacao@email.com' ||
-    str === 'rafael.trovao@email.com' ||
-    str === 'camila.oliveira@email.com'
-  );
-};
+import { markAsDeleted, isDeletedRecord, isTestMockRecord } from '../lib/deletionTracker';
 
 export interface LoginResult {
   success: boolean;
@@ -72,13 +61,12 @@ const getSyncedInitialUsers = (): User[] => {
   const savedUsers = localStorage.getItem('bjjcron_users');
   let baseUsers: User[] = savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS;
 
-  // Filter out any leftover robot/test accounts
+  // Filter out any leftover robot/test or deleted accounts
   baseUsers = baseUsers.filter(u => 
-    !u.id.startsWith('user-student-pending-') && 
-    !u.id.startsWith('std-pending-') &&
-    u.email !== 'bruno.solicitacao@email.com' && 
-    u.email !== 'rafael.trovao@email.com' && 
-    u.email !== 'camila.oliveira@email.com'
+    !isTestMockRecord(u.id) &&
+    !isTestMockRecord(u.email) &&
+    !isTestMockRecord(u.name) &&
+    !isDeletedRecord(u.id, u.email, u.studentId)
   );
 
   // Ensure essential admin user (cauanchefe123@gmail.com) is present
@@ -102,10 +90,10 @@ const getSyncedInitialUsers = (): User[] => {
       studentsList.forEach((std: any) => {
         if (!std.email && !std.id) return;
         if (
-          (std.id && std.id.startsWith('std-pending-')) ||
-          std.email === 'bruno.solicitacao@email.com' ||
-          std.email === 'rafael.trovao@email.com' ||
-          std.email === 'camila.oliveira@email.com'
+          isTestMockRecord(std.id) ||
+          isTestMockRecord(std.email) ||
+          isTestMockRecord(std.name) ||
+          isDeletedRecord(std.id, std.email)
         ) {
           return;
         }
@@ -243,7 +231,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 1. Merge cloud users with local state
         cList.forEach((u: User) => {
-          if (isTestMockRecord(u.id) || isTestMockRecord(u.email) || isTestMockRecord(u.studentId)) {
+          if (
+            isTestMockRecord(u.id) || 
+            isTestMockRecord(u.email) || 
+            isTestMockRecord(u.name) ||
+            isTestMockRecord(u.studentId) ||
+            isDeletedRecord(u.id, u.email, u.studentId)
+          ) {
             removeFromFirestore('users', u.id);
             if (u.studentId) removeFromFirestore('students', u.studentId);
             return;
@@ -274,7 +268,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 2. Preserve local users missing from cloud
         prev.forEach(localU => {
-          if (isTestMockRecord(localU.id) || isTestMockRecord(localU.email) || isTestMockRecord(localU.studentId)) {
+          if (
+            isTestMockRecord(localU.id) || 
+            isTestMockRecord(localU.email) || 
+            isTestMockRecord(localU.name) ||
+            isTestMockRecord(localU.studentId) ||
+            isDeletedRecord(localU.id, localU.email, localU.studentId)
+          ) {
             return;
           }
           const exists = merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.trim().toLowerCase() === localU.email.trim().toLowerCase()));
@@ -286,7 +286,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 3. Ensure student records exist for all ALUNO users
         merged.forEach(u => {
-          if (u.role === 'ALUNO' && u.approvalStatus === 'APPROVED' && !isTestMockRecord(u.id) && !isTestMockRecord(u.email)) {
+          if (
+            u.role === 'ALUNO' && 
+            u.approvalStatus === 'APPROVED' && 
+            !isTestMockRecord(u.id) && 
+            !isTestMockRecord(u.email) &&
+            !isTestMockRecord(u.name) &&
+            !isDeletedRecord(u.id, u.email, u.studentId)
+          ) {
             const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
             const stExists = studentsList.some(s => 
               (u.studentId && s.id === u.studentId) || 
@@ -450,11 +457,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let currentUsers = [...users];
-    INITIAL_USERS.forEach(initU => {
-      if (!currentUsers.some(u => u.email.trim().toLowerCase() === initU.email.trim().toLowerCase() || u.id === initU.id)) {
-        currentUsers.push(initU);
-      }
-    });
     const savedUsers = localStorage.getItem('bjjcron_users');
     if (savedUsers) {
       try {
@@ -1010,6 +1012,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const rejectUser = (identifier: string) => {
     const cleanId = identifier.trim().toLowerCase();
 
+    markAsDeleted(identifier, cleanId);
+
+    // Purge matching users and student IDs from Firestore and mark deleted
+    users.forEach(u => {
+      if (
+        u.id === identifier || 
+        u.studentId === identifier || 
+        (u.email && u.email.trim().toLowerCase() === cleanId)
+      ) {
+        markAsDeleted(u.id, u.email, u.studentId);
+        removeFromFirestore('users', u.id);
+        if (u.studentId) removeFromFirestore('students', u.studentId);
+      }
+    });
+
     // 1. Delete from Firestore Cloud DB immediately
     removeFromFirestore('users', identifier);
     removeFromFirestore('students', identifier);
@@ -1018,27 +1035,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromFirestore('students', cleanId);
     }
 
-    // Purge matching users and student IDs from Firestore
-    users.forEach(u => {
-      if (
-        u.id === identifier || 
-        u.studentId === identifier || 
-        (u.email && u.email.trim().toLowerCase() === cleanId)
-      ) {
-        removeFromFirestore('users', u.id);
-        if (u.studentId) removeFromFirestore('students', u.studentId);
-      }
-    });
-
     // 2. Filter out from Users state
-    setUsers(prev => prev.filter(u => u.id !== identifier && u.studentId !== identifier && (u.email && u.email.toLowerCase() !== cleanId)));
+    setUsers(prev => prev.filter(u => 
+      u.id !== identifier && 
+      u.studentId !== identifier && 
+      (!u.email || u.email.toLowerCase() !== cleanId) &&
+      !isDeletedRecord(u.id, u.email, u.studentId)
+    ));
 
     // 3. Remove from localStorage bjjcron_users
     try {
       const savedUsers = localStorage.getItem('bjjcron_users');
       if (savedUsers) {
         const usersList = JSON.parse(savedUsers);
-        const updated = usersList.filter((u: any) => u.id !== identifier && u.studentId !== identifier && (u.email && u.email.toLowerCase() !== cleanId));
+        const updated = usersList.filter((u: any) => 
+          u.id !== identifier && 
+          u.studentId !== identifier && 
+          (!u.email || u.email.toLowerCase() !== cleanId) &&
+          !isDeletedRecord(u.id, u.email, u.studentId)
+        );
         localStorage.setItem('bjjcron_users', JSON.stringify(updated));
       }
     } catch (e) {}
@@ -1048,7 +1063,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedStudents = localStorage.getItem('bjjcron_students');
       if (savedStudents) {
         const studentsList = JSON.parse(savedStudents);
-        const updated = studentsList.filter((s: any) => s.id !== identifier && (s.email && s.email.toLowerCase() !== cleanId));
+        const updated = studentsList.filter((s: any) => 
+          s.id !== identifier && 
+          (!s.email || s.email.toLowerCase() !== cleanId) &&
+          !isDeletedRecord(s.id, s.email, s.registrationNumber)
+        );
         localStorage.setItem('bjjcron_students', JSON.stringify(updated));
       }
     } catch (e) {}
