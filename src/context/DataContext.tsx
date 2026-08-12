@@ -31,6 +31,7 @@ import {
   INITIAL_GRADUATIONS,
   INITIAL_PAYMENTS,
   INITIAL_STUDENTS,
+  INITIAL_HOMOLOG_STUDENTS,
   INITIAL_TEACHERS,
   INITIAL_TEACHER_OBSERVATIONS,
   INITIAL_TRAINING_LOGS,
@@ -130,11 +131,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
     const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
     const saved = localStorage.getItem(`${prefix}students`);
+    let rawList: Student[] = [];
     if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
-      return INITIAL_STUDENTS;
+      localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_HOMOLOG_STUDENTS));
+      rawList = INITIAL_HOMOLOG_STUDENTS;
+    } else if (saved) {
+      try { rawList = JSON.parse(saved); } catch (e) { rawList = []; }
+    } else {
+      rawList = INITIAL_STUDENTS;
     }
-    const rawList: Student[] = saved ? JSON.parse(saved) : [];
+
+    if (env === 'PROD') {
+      rawList = rawList.filter(s => 
+        !s.id.startsWith('std-pending-') && 
+        s.email !== 'bruno.solicitacao@email.com' && 
+        s.email !== 'rafael.trovao@email.com' && 
+        s.email !== 'camila.oliveira@email.com'
+      );
+      localStorage.setItem('bjjcron_students', JSON.stringify(rawList));
+    }
+
     return rawList.map(s => ({
       ...s,
       photoUrl: (!s.photoUrl || s.photoUrl.includes('unsplash.com')) ? DEFAULT_BLACK_GI_AVATAR : s.photoUrl
@@ -301,7 +317,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (mode === 'HOMOLOG') {
       const existing = localStorage.getItem('bjjcron_homolog_students');
       if (!existing) {
-        localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
+        localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_HOMOLOG_STUDENTS));
         localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
         localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
         localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
@@ -337,7 +353,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetHomologationData = () => {
-    localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
+    localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_HOMOLOG_STUDENTS));
     localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
     localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
     localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
@@ -348,7 +364,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('bjjcron_homolog_teacher_observations', JSON.stringify(INITIAL_TEACHER_OBSERVATIONS));
 
     if (environmentMode === 'HOMOLOG') {
-      setStudents(INITIAL_STUDENTS);
+      setStudents(INITIAL_HOMOLOG_STUDENTS);
       setTeachers(INITIAL_TEACHERS);
       setClasses(INITIAL_CLASSES);
       setAttendances(INITIAL_ATTENDANCE);
