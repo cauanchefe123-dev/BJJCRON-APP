@@ -329,36 +329,94 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Real-time Firestore Cloud Synchronization
   useEffect(() => {
     const unsubStudents = subscribeFirestoreCollection<Student>('students', (data) => {
-      if (data && data.length > 0) {
-        setStudents(prev => {
-          const saved = localStorage.getItem('bjjcron_students');
-          let localList: Student[] = prev;
-          if (saved) { try { localList = JSON.parse(saved); } catch (e) {} }
+      setStudents(prev => {
+        const saved = localStorage.getItem('bjjcron_students');
+        let localList: Student[] = prev;
+        if (saved) { try { localList = JSON.parse(saved); } catch (e) {} }
 
-          const merged = data.map(cloudSt => {
-            const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
-            if (localSt) {
-              const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED';
-              const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'PENDING');
-              return {
-                ...cloudSt,
-                ...localSt,
-                approvalStatus: bestApproval,
-                active: bestApproval === 'APPROVED' ? true : (localSt.active ?? cloudSt.active),
-                name: localSt.name || cloudSt.name,
-                email: localSt.email || cloudSt.email,
-                phone: localSt.phone || cloudSt.phone,
-                photoUrl: localSt.photoUrl || cloudSt.photoUrl,
-              };
-            }
-            return cloudSt;
-          });
+        const cloudItems = data || [];
+        const merged: Student[] = [];
 
-          safeSave('bjjcron_students', merged);
-          return merged;
+        // 1. Process cloud students
+        cloudItems.forEach(cloudSt => {
+          const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
+          if (localSt) {
+            const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED';
+            const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'PENDING');
+            merged.push({
+              ...cloudSt,
+              ...localSt,
+              approvalStatus: bestApproval,
+              active: bestApproval === 'APPROVED' ? true : (localSt.active ?? cloudSt.active),
+              name: localSt.name || cloudSt.name,
+              email: localSt.email || cloudSt.email,
+              phone: localSt.phone || cloudSt.phone,
+              photoUrl: localSt.photoUrl || cloudSt.photoUrl,
+            });
+          } else {
+            merged.push(cloudSt);
+          }
         });
-        window.dispatchEvent(new Event('bjjcron_students_updated'));
-      }
+
+        // 2. Preserve local students missing from cloud and push them to cloud
+        localList.forEach(localSt => {
+          const exists = merged.some(m => m.id === localSt.id || (m.email && localSt.email && m.email.trim().toLowerCase() === localSt.email.trim().toLowerCase()));
+          if (!exists) {
+            merged.push(localSt);
+            saveToFirestore('students', localSt);
+          }
+        });
+
+        // 3. Auto-sync ALUNO users from bjjcron_users
+        try {
+          const savedUsersStr = localStorage.getItem('bjjcron_users');
+          if (savedUsersStr) {
+            const allUsers: any[] = JSON.parse(savedUsersStr);
+            allUsers.forEach(u => {
+              if (u.role === 'ALUNO') {
+                const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
+                const exists = merged.some(s => 
+                  (u.studentId && s.id === u.studentId) || 
+                  (cleanUEmail && s.email && s.email.trim().toLowerCase() === cleanUEmail)
+                );
+                if (!exists) {
+                  const autoStudent: Student = {
+                    id: u.studentId || `std-${u.id}`,
+                    registrationNumber: `BJJ-2026-${String(merged.length + 1).padStart(3, '0')}`,
+                    name: u.name,
+                    email: u.email,
+                    phone: u.phone || '',
+                    birthDate: '2000-01-01',
+                    photoUrl: u.avatarUrl || DEFAULT_BLACK_GI_AVATAR,
+                    belt: 'BRANCA',
+                    stripes: 0,
+                    startDate: new Date().toISOString().split('T')[0],
+                    totalClassesAttended: 0,
+                    classesSinceLastGraduation: 0,
+                    weightCategory: 'MÉDIO',
+                    ageCategory: 'ADULTO',
+                    active: u.approvalStatus === 'APPROVED',
+                    planName: 'Plano Mensal Padrão',
+                    planPrice: 240,
+                    paymentDueDateDay: 10,
+                    paymentStatus: 'PENDENTE',
+                    qrCodeToken: `BJJCRON-${u.studentId || u.id}`,
+                    approvalStatus: u.approvalStatus || 'PENDING',
+                    notes: 'Atleta integrado via usuário',
+                    hasActivatedAccount: true,
+                  };
+                  merged.push(autoStudent);
+                  saveToFirestore('students', autoStudent);
+                }
+              }
+            });
+          }
+        } catch (e) {}
+
+        safeSave('bjjcron_students', merged);
+        return merged;
+      });
+      window.dispatchEvent(new Event('bjjcron_students_updated'));
     });
 
     const unsubTeachers = subscribeFirestoreCollection<Teacher>('teachers', (data) => {

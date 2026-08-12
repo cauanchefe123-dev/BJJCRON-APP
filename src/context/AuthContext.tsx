@@ -200,43 +200,96 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const timer = setInterval(fetchUsersFromApi, 3000);
 
     const unsubFirestoreUsers = subscribeFirestoreCollection<User>('users', (cloudUsers) => {
-      if (cloudUsers && cloudUsers.length > 0) {
-        setUsers(prev => {
-          const savedStudents = localStorage.getItem('bjjcron_students');
-          const savedCurr = localStorage.getItem('bjjcron_current_user');
-          let currUser: any = null;
-          let studentsList: any[] = [];
-          if (savedCurr) { try { currUser = JSON.parse(savedCurr); } catch(e){} }
-          if (savedStudents) { try { studentsList = JSON.parse(savedStudents); } catch(e){} }
+      setUsers(prev => {
+        const savedStudents = localStorage.getItem('bjjcron_students');
+        const savedCurr = localStorage.getItem('bjjcron_current_user');
+        let currUser: any = null;
+        let studentsList: any[] = [];
+        if (savedCurr) { try { currUser = JSON.parse(savedCurr); } catch(e){} }
+        if (savedStudents) { try { studentsList = JSON.parse(savedStudents); } catch(e){} }
 
-          const merged = cloudUsers.map((u: User) => {
-            const stMatch = studentsList.find((s: any) => 
-              (s.id && u.studentId && s.id === u.studentId) || 
-              (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
-            );
-            const isCurr = currUser && (
-              currUser.id === u.id || 
-              (currUser.email && u.email && currUser.email.trim().toLowerCase() === u.email.trim().toLowerCase())
-            );
-            const localPrev = prev.find(p => p.id === u.id || (p.email && u.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
-            const isApproved = u.approvalStatus === 'APPROVED' || (stMatch && stMatch.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED');
-            const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (stMatch && stMatch.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'PENDING');
+        const cList = cloudUsers || [];
+        const merged: User[] = [];
 
-            return {
-              ...u,
-              approvalStatus: bestApproval,
-              isActivated: bestApproval === 'APPROVED' ? true : u.isActivated,
-              name: (isCurr && currUser.name) ? currUser.name : (stMatch && stMatch.name) ? stMatch.name : u.name,
-              email: (isCurr && currUser.email) ? currUser.email : (stMatch && stMatch.email) ? stMatch.email : u.email,
-              phone: (isCurr && currUser.phone) ? currUser.phone : (stMatch && stMatch.phone) ? stMatch.phone : u.phone,
-              avatarUrl: (isCurr && currUser.avatarUrl) ? currUser.avatarUrl : (stMatch && stMatch.photoUrl) ? stMatch.photoUrl : u.avatarUrl
-            };
+        // 1. Merge cloud users with local state
+        cList.forEach((u: User) => {
+          const stMatch = studentsList.find((s: any) => 
+            (s.id && u.studentId && s.id === u.studentId) || 
+            (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+          );
+          const isCurr = currUser && (
+            currUser.id === u.id || 
+            (currUser.email && u.email && currUser.email.trim().toLowerCase() === u.email.trim().toLowerCase())
+          );
+          const localPrev = prev.find(p => p.id === u.id || (p.email && u.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
+          const isApproved = u.approvalStatus === 'APPROVED' || (stMatch && stMatch.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED');
+          const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (stMatch && stMatch.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'PENDING');
+
+          merged.push({
+            ...u,
+            approvalStatus: bestApproval,
+            isActivated: bestApproval === 'APPROVED' ? true : u.isActivated,
+            name: (isCurr && currUser.name) ? currUser.name : (stMatch && stMatch.name) ? stMatch.name : u.name,
+            email: (isCurr && currUser.email) ? currUser.email : (stMatch && stMatch.email) ? stMatch.email : u.email,
+            phone: (isCurr && currUser.phone) ? currUser.phone : (stMatch && stMatch.phone) ? stMatch.phone : u.phone,
+            avatarUrl: (isCurr && currUser.avatarUrl) ? currUser.avatarUrl : (stMatch && stMatch.photoUrl) ? stMatch.photoUrl : u.avatarUrl
           });
-
-          localStorage.setItem('bjjcron_users', JSON.stringify(merged));
-          return merged;
         });
-      }
+
+        // 2. Preserve local users missing from cloud
+        prev.forEach(localU => {
+          const exists = merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.trim().toLowerCase() === localU.email.trim().toLowerCase()));
+          if (!exists) {
+            merged.push(localU);
+            saveToFirestore('users', localU);
+          }
+        });
+
+        // 3. Ensure student records exist for all ALUNO users
+        merged.forEach(u => {
+          if (u.role === 'ALUNO') {
+            const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
+            const stExists = studentsList.some(s => 
+              (u.studentId && s.id === u.studentId) || 
+              (cleanUEmail && s.email && s.email.trim().toLowerCase() === cleanUEmail)
+            );
+            if (!stExists) {
+              const newSt = {
+                id: u.studentId || `std-${u.id}`,
+                registrationNumber: `BJJ-2026-${String(studentsList.length + 1).padStart(3, '0')}`,
+                name: u.name,
+                email: u.email,
+                phone: u.phone || '',
+                birthDate: '2000-01-01',
+                photoUrl: u.avatarUrl || DEFAULT_BLACK_GI_AVATAR,
+                belt: 'BRANCA',
+                stripes: 0,
+                startDate: new Date().toISOString().split('T')[0],
+                totalClassesAttended: 0,
+                classesSinceLastGraduation: 0,
+                weightCategory: 'MÉDIO',
+                ageCategory: 'ADULTO',
+                active: u.approvalStatus === 'APPROVED',
+                planName: 'Plano Mensal Padrão',
+                planPrice: 240,
+                paymentDueDateDay: 10,
+                paymentStatus: 'PENDENTE',
+                qrCodeToken: `BJJCRON-${u.studentId || u.id}`,
+                approvalStatus: u.approvalStatus || 'PENDING',
+                notes: 'Atleta integrado via usuário',
+                hasActivatedAccount: true,
+              };
+              studentsList.push(newSt);
+              localStorage.setItem('bjjcron_students', JSON.stringify(studentsList));
+              saveToFirestore('students', newSt);
+              window.dispatchEvent(new Event('bjjcron_students_updated'));
+            }
+          }
+        });
+
+        localStorage.setItem('bjjcron_users', JSON.stringify(merged));
+        return merged;
+      });
     });
 
     const syncFromStorage = () => {

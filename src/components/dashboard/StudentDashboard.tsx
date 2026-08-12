@@ -5,7 +5,8 @@ import { BeltBadge } from '../belts/BeltBadge';
 import { getStudentAvatar, resolveStudentForUser } from '../../constants/avatar';
 import { DigitalMembershipCard } from '../card/DigitalMembershipCard';
 import { getTrainingTimeText } from '../../utils/trainingTime';
-import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play } from 'lucide-react';
+import { calculateRanking } from '../../utils/ranking';
+import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play, Trophy } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
 
@@ -30,6 +31,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
   const myAttendances = attendances.filter(a => a.studentId === currentStudent?.id);
 
   const pendingPayment = myPayments.find(p => p.status === 'PENDENTE' || p.status === 'ATRASADO');
+
+  // Calculate current student's weekly & monthly ranking
+  const weekRanking = calculateRanking(students, attendances, 'WEEK');
+  const monthRanking = calculateRanking(students, attendances, 'MONTH');
+
+  const myWeekItem = currentStudent
+    ? weekRanking.find(r => r.student.id === currentStudent.id || (r.student.email && currentStudent.email && r.student.email.trim().toLowerCase() === currentStudent.email.trim().toLowerCase()))
+    : null;
+
+  const myMonthItem = currentStudent
+    ? monthRanking.find(r => r.student.id === currentStudent.id || (r.student.email && currentStudent.email && r.student.email.trim().toLowerCase() === currentStudent.email.trim().toLowerCase()))
+    : null;
 
   return (
     <div className="space-y-6">
@@ -252,9 +265,41 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div 
+          onClick={() => onNavigate('ranking')}
+          className="bg-gradient-to-br from-amber-950/60 via-slate-900 to-slate-900 border border-amber-500/40 hover:border-amber-400 rounded-2xl p-4 sm:p-5 text-white space-y-1 cursor-pointer transition-all hover:scale-[1.02] shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold text-amber-400 block truncate">Posição da Semana</span>
+            <Trophy className="w-4 h-4 text-amber-400" />
+          </div>
+          <p className="text-2xl sm:text-3xl font-black text-amber-300">
+            #{myWeekItem?.rank || '-'}
+          </p>
+          <p className="text-[10px] sm:text-[11px] text-slate-300 truncate">
+            {myWeekItem ? `${myWeekItem.weekCount} treino(s) esta semana` : 'Nenhum treino ainda'}
+          </p>
+        </div>
+
+        <div 
+          onClick={() => onNavigate('ranking')}
+          className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 sm:p-5 text-white space-y-1 cursor-pointer transition-all hover:scale-[1.02]"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Posição do Mês</span>
+            <Flame className="w-4 h-4 text-amber-500" />
+          </div>
+          <p className="text-2xl sm:text-3xl font-black text-amber-400">
+            #{myMonthItem?.rank || '-'}
+          </p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+            {myMonthItem ? `${myMonthItem.monthCount} treino(s) este mês` : 'Nenhum treino no mês'}
+          </p>
+        </div>
+
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
           <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Total de Treinos</span>
-          <p className="text-2xl sm:text-3xl font-black text-amber-400">{currentStudent.totalClassesAttended}</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-100">{currentStudent.totalClassesAttended}</p>
           <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Presenças no tatame</p>
         </div>
 
@@ -264,22 +309,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
             {getTrainingTimeText(currentStudent.startDate, currentStudent.initialMonthsTrained)}
           </p>
           <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Jornada acumulada</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
-          <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Horas de Tatame</span>
-          <p className="text-2xl sm:text-3xl font-black text-blue-400">
-            {Math.round((currentStudent.totalClassesAttended * 75) / 60)}h
-          </p>
-          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Em aula prática</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
-          <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Status da Matrícula</span>
-          <p className="text-xl sm:text-2xl font-black text-emerald-400">
-            ATIVO
-          </p>
-          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Atleta regularizado</p>
         </div>
       </div>
 
