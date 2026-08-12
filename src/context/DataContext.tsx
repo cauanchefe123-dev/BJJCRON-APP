@@ -31,7 +31,6 @@ import {
   INITIAL_GRADUATIONS,
   INITIAL_PAYMENTS,
   INITIAL_STUDENTS,
-  INITIAL_HOMOLOG_STUDENTS,
   INITIAL_TEACHERS,
   INITIAL_TEACHER_OBSERVATIONS,
   INITIAL_TRAINING_LOGS,
@@ -123,49 +122,34 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [environmentMode, setEnvironmentModeState] = useState<'PROD' | 'HOMOLOG'>(() => {
-    const saved = localStorage.getItem('bjjcron_env_mode');
-    return saved === 'HOMOLOG' ? 'HOMOLOG' : 'PROD';
+    return 'PROD';
   });
 
   const [students, setStudents] = useState<Student[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}students`);
-    let rawList: Student[] = [];
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_HOMOLOG_STUDENTS));
-      rawList = INITIAL_HOMOLOG_STUDENTS;
-    } else if (saved) {
-      try { rawList = JSON.parse(saved); } catch (e) { rawList = []; }
-    } else {
-      rawList = INITIAL_STUDENTS;
-    }
+    const saved = localStorage.getItem('bjjcron_students');
+    let rawList: Student[] = saved ? JSON.parse(saved) : INITIAL_STUDENTS;
 
-    if (env === 'PROD') {
-      rawList = rawList.filter(s => 
-        !s.id.startsWith('std-pending-') && 
-        s.email !== 'bruno.solicitacao@email.com' && 
-        s.email !== 'rafael.trovao@email.com' && 
-        s.email !== 'camila.oliveira@email.com'
-      );
-      localStorage.setItem('bjjcron_students', JSON.stringify(rawList));
-    }
+    rawList = rawList.filter(s => 
+      !s.id.startsWith('std-pending-') && 
+      s.email !== 'bruno.solicitacao@email.com' && 
+      s.email !== 'rafael.trovao@email.com' && 
+      s.email !== 'camila.oliveira@email.com'
+    );
 
-    return rawList.map(s => ({
+    const processed = rawList.map(s => ({
       ...s,
+      approvalStatus: s.approvalStatus || 'APPROVED',
+      active: s.approvalStatus === 'APPROVED' || s.active !== false,
       photoUrl: (!s.photoUrl || s.photoUrl.includes('unsplash.com')) ? DEFAULT_BLACK_GI_AVATAR : s.photoUrl
     }));
+
+    localStorage.setItem('bjjcron_students', JSON.stringify(processed));
+    return processed;
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}teachers`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
-      return INITIAL_TEACHERS;
-    }
-    const rawList: Teacher[] = saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_teachers');
+    const rawList: Teacher[] = saved ? JSON.parse(saved) : INITIAL_TEACHERS;
     return rawList.map(t => ({
       ...t,
       photoUrl: (!t.photoUrl || t.photoUrl.includes('unsplash.com')) ? DEFAULT_BLACK_GI_AVATAR : t.photoUrl
@@ -173,25 +157,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [classes, setClasses] = useState<BJJClass[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}classes`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
-      return INITIAL_CLASSES;
-    }
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_classes');
+    return saved ? JSON.parse(saved) : INITIAL_CLASSES;
   });
 
   const [attendances, setAttendances] = useState<AttendanceRecord[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}attendances`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
-      return INITIAL_ATTENDANCE;
-    }
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_attendances');
+    return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
   });
 
   const [payments, setPayments] = useState<PaymentRecord[]>(() => {
@@ -317,7 +289,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (mode === 'HOMOLOG') {
       const existing = localStorage.getItem('bjjcron_homolog_students');
       if (!existing) {
-        localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_HOMOLOG_STUDENTS));
+        localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
         localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
         localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
         localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
@@ -353,7 +325,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetHomologationData = () => {
-    localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_HOMOLOG_STUDENTS));
+    localStorage.setItem('bjjcron_homolog_students', JSON.stringify(INITIAL_STUDENTS));
     localStorage.setItem('bjjcron_homolog_teachers', JSON.stringify(INITIAL_TEACHERS));
     localStorage.setItem('bjjcron_homolog_classes', JSON.stringify(INITIAL_CLASSES));
     localStorage.setItem('bjjcron_homolog_attendances', JSON.stringify(INITIAL_ATTENDANCE));
@@ -364,7 +336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('bjjcron_homolog_teacher_observations', JSON.stringify(INITIAL_TEACHER_OBSERVATIONS));
 
     if (environmentMode === 'HOMOLOG') {
-      setStudents(INITIAL_HOMOLOG_STUDENTS);
+      setStudents(INITIAL_STUDENTS);
       setTeachers(INITIAL_TEACHERS);
       setClasses(INITIAL_CLASSES);
       setAttendances(INITIAL_ATTENDANCE);
@@ -493,8 +465,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cloudItems.forEach(cloudSt => {
           const localSt = localList.find(s => s.id === cloudSt.id || (s.email && cloudSt.email && s.email.trim().toLowerCase() === cloudSt.email.trim().toLowerCase()));
           if (localSt) {
-            const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED';
-            const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'PENDING');
+            const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED' || (!cloudSt.approvalStatus && !localSt.approvalStatus);
+            const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'APPROVED');
             merged.push({
               ...cloudSt,
               ...localSt,
@@ -547,13 +519,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     classesSinceLastGraduation: 0,
                     weightCategory: 'MÉDIO',
                     ageCategory: 'ADULTO',
-                    active: u.approvalStatus === 'APPROVED',
+                    active: u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED',
                     planName: 'Plano Mensal Padrão',
                     planPrice: 240,
                     paymentDueDateDay: 10,
                     paymentStatus: 'PENDENTE',
                     qrCodeToken: `BJJCRON-${u.studentId || u.id}`,
-                    approvalStatus: u.approvalStatus || 'PENDING',
+                    approvalStatus: u.approvalStatus || 'APPROVED',
                     notes: 'Atleta integrado via usuário',
                     hasActivatedAccount: true,
                   };
@@ -670,7 +642,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       qrCodeToken: qrToken,
       totalClassesAttended: 0,
       classesSinceLastGraduation: 0,
-      approvalStatus: studentData.approvalStatus || 'PENDING',
+      approvalStatus: studentData.approvalStatus || 'APPROVED',
       hasActivatedAccount: false,
     };
 
@@ -696,7 +668,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             studentId: newId,
             phone: studentData.phone || '',
             password: '123',
-            approvalStatus: studentData.approvalStatus || 'PENDING',
+            approvalStatus: studentData.approvalStatus || 'APPROVED',
             isActivated: false,
             avatarUrl: (studentData.photoUrl && !studentData.photoUrl.includes('unsplash.com')) ? studentData.photoUrl : DEFAULT_BLACK_GI_AVATAR
           };

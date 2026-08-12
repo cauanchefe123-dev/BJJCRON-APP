@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, BeltType, AgeCategory, WeightCategory } from '../types';
-import { INITIAL_USERS, INITIAL_HOMOLOG_USERS } from '../data/mockData';
+import { INITIAL_USERS } from '../data/mockData';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 import { subscribeFirestoreCollection, saveToFirestore } from '../lib/firebaseStore';
 
@@ -57,21 +57,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper to ensure every student in bjjcron_students or INITIAL_STUDENTS has a corresponding User
 const getSyncedInitialUsers = (): User[] => {
-  const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-  const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-  const savedUsers = localStorage.getItem(`${prefix}users`);
-  let baseUsers: User[] = savedUsers ? JSON.parse(savedUsers) : (env === 'HOMOLOG' ? INITIAL_HOMOLOG_USERS : INITIAL_USERS);
+  const savedUsers = localStorage.getItem('bjjcron_users');
+  let baseUsers: User[] = savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS;
 
-  // In PROD mode, guarantee that mock pending users (robot test accounts) are purged completely
-  if (env === 'PROD') {
-    baseUsers = baseUsers.filter(u => 
-      !u.id.startsWith('user-student-pending-') && 
-      !u.id.startsWith('std-pending-') &&
-      u.email !== 'bruno.solicitacao@email.com' && 
-      u.email !== 'rafael.trovao@email.com' && 
-      u.email !== 'camila.oliveira@email.com'
-    );
-  }
+  // Filter out any leftover robot/test accounts
+  baseUsers = baseUsers.filter(u => 
+    !u.id.startsWith('user-student-pending-') && 
+    !u.id.startsWith('std-pending-') &&
+    u.email !== 'bruno.solicitacao@email.com' && 
+    u.email !== 'rafael.trovao@email.com' && 
+    u.email !== 'camila.oliveira@email.com'
+  );
 
   // Ensure essential admin user (cauanchefe123@gmail.com) is present
   const cauanAdmin = INITIAL_USERS.find(u => u.email.includes('cauanchefe123'));
@@ -82,22 +78,23 @@ const getSyncedInitialUsers = (): User[] => {
   // Replace unsplash avatars with DEFAULT_BLACK_GI_AVATAR
   baseUsers = baseUsers.map(u => ({
     ...u,
+    approvalStatus: u.approvalStatus || 'APPROVED',
     avatarUrl: (!u.avatarUrl || u.avatarUrl.includes('unsplash.com')) ? DEFAULT_BLACK_GI_AVATAR : u.avatarUrl
   }));
 
-  const savedStudents = localStorage.getItem(`${prefix}students`);
+  const savedStudents = localStorage.getItem('bjjcron_students');
   if (savedStudents) {
     try {
       const studentsList = JSON.parse(savedStudents);
       let changed = false;
       studentsList.forEach((std: any) => {
         if (!std.email && !std.id) return;
-        if (env === 'PROD' && (
+        if (
           (std.id && std.id.startsWith('std-pending-')) ||
           std.email === 'bruno.solicitacao@email.com' ||
           std.email === 'rafael.trovao@email.com' ||
           std.email === 'camila.oliveira@email.com'
-        )) {
+        ) {
           return;
         }
         const cleanEmail = std.email ? std.email.trim().toLowerCase() : '';
@@ -114,8 +111,8 @@ const getSyncedInitialUsers = (): User[] => {
             studentId: std.id,
             phone: std.phone || '',
             password: std.password || '123',
-            approvalStatus: std.approvalStatus || (std.active !== false ? 'APPROVED' : 'PENDING'),
-            isActivated: std.hasActivatedAccount !== undefined ? std.hasActivatedAccount : false,
+            approvalStatus: std.approvalStatus || 'APPROVED',
+            isActivated: std.hasActivatedAccount !== undefined ? std.hasActivatedAccount : true,
             avatarUrl: (std.photoUrl && !std.photoUrl.includes('unsplash.com')) ? std.photoUrl : DEFAULT_BLACK_GI_AVATAR
           });
           changed = true;
@@ -140,8 +137,8 @@ const getSyncedInitialUsers = (): User[] => {
           }
         }
       });
-      if (changed || env === 'PROD') {
-        localStorage.setItem(`${prefix}users`, JSON.stringify(baseUsers));
+      if (changed) {
+        localStorage.setItem('bjjcron_users', JSON.stringify(baseUsers));
       }
     } catch (e) {
       console.error('Error syncing students to users on load:', e);
@@ -185,8 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase())
                 );
                 const localPrev = prev.find((p: User) => p.id === u.id || (p.email && u.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
-                const isApproved = u.approvalStatus === 'APPROVED' || (match && match.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED');
-                const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (match && match.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'PENDING');
+                const isApproved = u.approvalStatus === 'APPROVED' || (match && match.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED') || (!u.approvalStatus && u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED');
+                const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (match && match.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'APPROVED');
 
                 return {
                   ...u,
@@ -243,8 +240,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             (currUser.email && u.email && currUser.email.trim().toLowerCase() === u.email.trim().toLowerCase())
           );
           const localPrev = prev.find(p => p.id === u.id || (p.email && u.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
-          const isApproved = u.approvalStatus === 'APPROVED' || (stMatch && stMatch.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED');
-          const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (stMatch && stMatch.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'PENDING');
+          const isApproved = u.approvalStatus === 'APPROVED' || (stMatch && stMatch.approvalStatus === 'APPROVED') || (localPrev && localPrev.approvalStatus === 'APPROVED') || (!u.approvalStatus && u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED');
+          const bestApproval = isApproved ? 'APPROVED' : (u.approvalStatus || (stMatch && stMatch.approvalStatus) || (localPrev && localPrev.approvalStatus) || 'APPROVED');
 
           merged.push({
             ...u,
@@ -290,13 +287,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 classesSinceLastGraduation: 0,
                 weightCategory: 'MÉDIO',
                 ageCategory: 'ADULTO',
-                active: u.approvalStatus === 'APPROVED',
+                active: u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED',
                 planName: 'Plano Mensal Padrão',
                 planPrice: 240,
                 paymentDueDateDay: 10,
                 paymentStatus: 'PENDENTE',
                 qrCodeToken: `BJJCRON-${u.studentId || u.id}`,
-                approvalStatus: u.approvalStatus || 'PENDING',
+                approvalStatus: u.approvalStatus || 'APPROVED',
                 notes: 'Atleta integrado via usuário',
                 hasActivatedAccount: true,
               };

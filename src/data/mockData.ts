@@ -316,7 +316,9 @@ export const INITIAL_STUDENTS: Student[] = [
     paymentStatus: 'PENDENTE',
     lastPaymentDate: '2026-06-15',
     qrCodeToken: 'BJJCRON-STD-3-RODRIGO-MENDES',
-    notes: 'Evolução muito rápida na guarda fechada.'
+    notes: 'Evolução muito rápida na guarda fechada.',
+    approvalStatus: 'APPROVED',
+    hasActivatedAccount: true
   },
   {
     id: 'std-4',
@@ -340,7 +342,9 @@ export const INITIAL_STUDENTS: Student[] = [
     paymentStatus: 'PAGO',
     lastPaymentDate: '2026-07-08',
     qrCodeToken: 'BJJCRON-STD-4-BEATRIZ-SANTOS',
-    notes: 'Auxilia nas aulas Kids e treinos femininos.'
+    notes: 'Auxilia nas aulas Kids e treinos femininos.',
+    approvalStatus: 'APPROVED',
+    hasActivatedAccount: true
   },
   {
     id: 'std-5',
@@ -363,7 +367,9 @@ export const INITIAL_STUDENTS: Student[] = [
     paymentDueDateDay: 20,
     paymentStatus: 'PAGO',
     lastPaymentDate: '2026-07-18',
-    qrCodeToken: 'BJJCRON-STD-5-ENZO-COSTA'
+    qrCodeToken: 'BJJCRON-STD-5-ENZO-COSTA',
+    approvalStatus: 'APPROVED',
+    hasActivatedAccount: true
   },
   {
     id: 'std-6',
@@ -387,7 +393,9 @@ export const INITIAL_STUDENTS: Student[] = [
     paymentStatus: 'ATRASADO',
     lastPaymentDate: '2026-05-05',
     qrCodeToken: 'BJJCRON-STD-6-FELIPE-CAMARGO',
-    notes: 'Mensalidade pendente há 20 dias. Entrar em contato via WhatsApp.'
+    notes: 'Mensalidade pendente há 20 dias. Entrar em contato via WhatsApp.',
+    approvalStatus: 'APPROVED',
+    hasActivatedAccount: true
   },
   {
     id: 'std-7',
@@ -410,7 +418,9 @@ export const INITIAL_STUDENTS: Student[] = [
     paymentDueDateDay: 1,
     paymentStatus: 'PAGO',
     lastPaymentDate: '2026-07-01',
-    qrCodeToken: 'BJJCRON-STD-7-GABRIEL-FERA'
+    qrCodeToken: 'BJJCRON-STD-7-GABRIEL-FERA',
+    approvalStatus: 'APPROVED',
+    hasActivatedAccount: true
   }
 ];
 
@@ -641,128 +651,6 @@ export const INITIAL_TEACHER_OBSERVATIONS: TeacherObservation[] = [
     title: 'Evolução no Gas e Ritmo de Luta',
     content: 'Ótima constância na frequência de treinos. Seu ritmo no treino de competição subiu bastante. Mantenha essa pegada rumo ao próximo grau!',
     category: 'EVOLUÇÃO'
-  }
-];
-
-export const INITIAL_HOMOLOG_USERS: User[] = [
-  ...INITIAL_USERS,
-  {
-    id: 'user-student-pending-1',
-    name: 'Bruno Costa',
-    email: 'bruno.solicitacao@email.com',
-    role: 'ALUNO',
-    studentId: 'std-pending-1',
-    avatarUrl: DEFAULT_BLACK_GI_AVATAR,
-    phone: '(11) 98888-1111',
-    password: '123',
-    approvalStatus: 'PENDING',
-    isActivated: true
-  },
-  {
-    id: 'user-student-pending-2',
-    name: 'Rafael "Trovão" Mendes',
-    email: 'rafael.trovao@email.com',
-    role: 'ALUNO',
-    studentId: 'std-pending-2',
-    avatarUrl: DEFAULT_BLACK_GI_AVATAR,
-    phone: '(11) 99111-2233',
-    password: '123',
-    approvalStatus: 'PENDING',
-    isActivated: true
-  },
-  {
-    id: 'user-student-pending-3',
-    name: 'Camila "Sereia" Oliveira',
-    email: 'camila.oliveira@email.com',
-    role: 'ALUNO',
-    studentId: 'std-pending-3',
-    avatarUrl: DEFAULT_BLACK_GI_AVATAR,
-    phone: '(11) 99222-3344',
-    password: '123',
-    approvalStatus: 'PENDING',
-    isActivated: true
-  }
-];
-
-export const INITIAL_HOMOLOG_STUDENTS: Student[] = [
-  ...INITIAL_STUDENTS,
-  {
-    id: 'std-pending-1',
-    registrationNumber: 'BJJ-2026-PEND-01',
-    name: 'Bruno Costa',
-    email: 'bruno.solicitacao@email.com',
-    phone: '(11) 98888-1111',
-    birthDate: '1999-03-15',
-    photoUrl: DEFAULT_BLACK_GI_AVATAR,
-    belt: 'BRANCA',
-    stripes: 0,
-    startDate: new Date().toISOString().split('T')[0],
-    totalClassesAttended: 0,
-    classesSinceLastGraduation: 0,
-    weightCategory: 'LEVE',
-    ageCategory: 'ADULTO',
-    active: false,
-    planName: 'Plano Mensal Padrão',
-    planPrice: 240,
-    paymentDueDateDay: 10,
-    paymentStatus: 'PENDENTE',
-    qrCodeToken: 'BJJCRON-STD-BRUNO-COSTA',
-    notes: 'Solicitação de matrícula enviada pelo formulário web.',
-    approvalStatus: 'PENDING',
-    hasActivatedAccount: true,
-    password: '123'
-  },
-  {
-    id: 'std-pending-2',
-    registrationNumber: 'BJJ-2026-PRE-03',
-    name: 'Rafael "Trovão" Mendes',
-    email: 'rafael.trovao@email.com',
-    phone: '(11) 99111-2233',
-    birthDate: '1998-04-12',
-    photoUrl: DEFAULT_BLACK_GI_AVATAR,
-    belt: 'BRANCA',
-    stripes: 0,
-    startDate: new Date().toISOString().split('T')[0],
-    totalClassesAttended: 0,
-    classesSinceLastGraduation: 0,
-    weightCategory: 'MÉDIO',
-    ageCategory: 'ADULTO',
-    active: false,
-    planName: 'Plano Mensal Padrão',
-    planPrice: 240,
-    paymentDueDateDay: 10,
-    paymentStatus: 'PENDENTE',
-    qrCodeToken: 'BJJCRON-STD-RAFAEL-MENDES',
-    notes: 'Solicitação para entrar na equipe (Faixa Branca / Médio).',
-    approvalStatus: 'PENDING',
-    hasActivatedAccount: true,
-    password: '123'
-  },
-  {
-    id: 'std-pending-3',
-    registrationNumber: 'BJJ-2026-PRE-04',
-    name: 'Camila "Sereia" Oliveira',
-    email: 'camila.oliveira@email.com',
-    phone: '(11) 99222-3344',
-    birthDate: '1996-09-20',
-    photoUrl: DEFAULT_BLACK_GI_AVATAR,
-    belt: 'AZUL',
-    stripes: 2,
-    startDate: new Date().toISOString().split('T')[0],
-    totalClassesAttended: 0,
-    classesSinceLastGraduation: 0,
-    weightCategory: 'LEVE',
-    ageCategory: 'ADULTO',
-    active: false,
-    planName: 'Plano Mensal Padrão',
-    planPrice: 240,
-    paymentDueDateDay: 10,
-    paymentStatus: 'PENDENTE',
-    qrCodeToken: 'BJJCRON-STD-CAMILA-OLIVEIRA',
-    notes: 'Solicitação para entrar na equipe (Faixa Azul 2 Graus).',
-    approvalStatus: 'PENDING',
-    hasActivatedAccount: true,
-    password: '123'
   }
 ];
 

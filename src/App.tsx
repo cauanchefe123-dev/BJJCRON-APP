@@ -43,7 +43,6 @@ import { PaymentRecord, Student } from './types';
 import { AuthModal } from './components/auth/AuthModal';
 import { resolveStudentForUser } from './constants/avatar';
 import { InAppToastNotification } from './components/notifications/InAppToastNotification';
-import { EnvironmentBanner } from './components/common/EnvironmentBanner';
 
 function MainApp() {
   const { currentUser } = useAuth();
@@ -101,9 +100,6 @@ function MainApp() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-          {/* Banner de Ambiente (Produção vs Homologação) */}
-          <EnvironmentBanner />
-
           {/* Top Header */}
           <Navbar
             activeTab={activeTab}
