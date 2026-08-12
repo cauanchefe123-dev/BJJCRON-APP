@@ -97,6 +97,8 @@ interface DataContextType {
   
   // Training Log Actions
   addTrainingLog: (log: Omit<TrainingLog, 'id'>) => void;
+  updateTrainingLog: (id: string, updates: Partial<TrainingLog>) => void;
+  deleteTrainingLog: (id: string) => void;
 
   // Teacher Observation Actions
   addTeacherObservation: (obs: Omit<TeacherObservation, 'id' | 'date'>) => void;
@@ -1379,6 +1381,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch(() => {});
   };
 
+  const updateTrainingLog = (id: string, updates: Partial<TrainingLog>) => {
+    setTrainingLogs(prev => {
+      const updated = prev.map(l => l.id === id ? { ...l, ...updates } : l);
+      localStorage.setItem('bjjcron_training_logs', JSON.stringify(updated));
+      return updated;
+    });
+    const log = trainingLogs.find(l => l.id === id);
+    if (log) {
+      const merged = { ...log, ...updates };
+      saveToFirestore('trainingLogs', merged);
+      fetch(`/api/training-logs/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(merged),
+      }).catch(() => {});
+    }
+  };
+
+  const deleteTrainingLog = (id: string) => {
+    setTrainingLogs(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      localStorage.setItem('bjjcron_training_logs', JSON.stringify(updated));
+      return updated;
+    });
+    removeFromFirestore('trainingLogs', id);
+    fetch(`/api/training-logs/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   // Teacher Observations
   const addTeacherObservation = (obsData: Omit<TeacherObservation, 'id' | 'date'>) => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -1595,6 +1625,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addPayment,
       markPaymentAsPaid,
       addTrainingLog,
+      updateTrainingLog,
+      deleteTrainingLog,
       addTeacherObservation,
       updateTeacherObservation,
       deleteTeacherObservation,

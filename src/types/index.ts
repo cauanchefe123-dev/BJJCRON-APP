@@ -178,6 +178,11 @@ export interface TrainingLog {
   roundsCount: number;
   notes: string;
   moodRating: number; // 1-5
+  modality?: 'GI' | 'NO_GI';
+  sessionType?: 'AULA_REGULAR' | 'OPEN_MAT' | 'COMPETICAO' | 'PARTICULAR' | 'TREINO_LIVRE';
+  submissionsApplied?: string[];
+  submissionsReceived?: string[];
+  categoryTags?: string[];
 }
 
 export interface TeacherObservation {
