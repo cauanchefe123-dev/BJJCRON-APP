@@ -596,6 +596,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             allUsers.forEach(u => {
               if (
                 u.role === 'ALUNO' && 
+                u.approvalStatus === 'APPROVED' &&
                 !isTestMockRecord(u.id) && 
                 !isTestMockRecord(u.email) &&
                 !isTestMockRecord(u.name) &&

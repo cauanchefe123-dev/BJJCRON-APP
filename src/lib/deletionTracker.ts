@@ -35,5 +35,19 @@ export function isDeletedRecord(...identifiers: (string | undefined | null)[]): 
 }
 
 export function isTestMockRecord(val: string | undefined | null): boolean {
+  if (!val) return false;
+  const str = String(val).toLowerCase().trim();
+  if (
+    str.includes('trovao') ||
+    str.includes('trovão') ||
+    str.includes('sereia') ||
+    str.includes('rafael.trovao') ||
+    str.includes('camila.oliveira') ||
+    str.includes('testmock') ||
+    str.includes('mockdata') ||
+    str.includes('dummyuser')
+  ) {
+    return true;
+  }
   return false;
 }
