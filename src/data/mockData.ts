@@ -1,4 +1,4 @@
-import { AcademyConfig, BJJClass, Graduation, PaymentRecord, Student, Teacher, TeacherObservation, TrainingLog, User, AttendanceRecord } from '../types';
+import { AcademyConfig, BJJClass, Graduation, PaymentRecord, Student, Teacher, TeacherObservation, TrainingLog, User, AttendanceRecord, BeltChangeRequest } from '../types';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 
 export const INITIAL_TEACHERS: Teacher[] = [

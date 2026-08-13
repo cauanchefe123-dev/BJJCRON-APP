@@ -5,7 +5,7 @@ import { BeltBadge } from '../belts/BeltBadge';
 import { getStudentAvatar, resolveStudentForUser } from '../../constants/avatar';
 import { DigitalMembershipCard } from '../card/DigitalMembershipCard';
 import { getTrainingTimeText } from '../../utils/trainingTime';
-import { calculateRanking } from '../../utils/ranking';
+import { calculateRanking, getStudentTotalClasses } from '../../utils/ranking';
 import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play, Trophy } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
@@ -299,7 +299,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 text-white space-y-1">
           <span className="text-[11px] sm:text-xs font-bold text-slate-400 block truncate">Total de Treinos</span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-100">{currentStudent.totalClassesAttended}</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-100">
+            {getStudentTotalClasses(currentStudent, attendances)}
+          </p>
           <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">Presenças no tatame</p>
         </div>
 

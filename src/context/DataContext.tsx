@@ -17,6 +17,7 @@ import {
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 import { checkClassCheckinAvailability } from '../utils/checkin';
 import { markAsDeleted, isDeletedRecord, isTestMockRecord } from '../lib/deletionTracker';
+import { getStudentAttendances } from '../utils/ranking';
 
 const getLocalDateStr = (d: Date = new Date()): string => {
   const year = d.getFullYear();
@@ -120,6 +121,28 @@ interface DataContextType {
   exportDatabaseJSON: () => string;
   importDatabaseJSON: (jsonStr: string) => { success: boolean; message: string };
 }
+
+const BELT_RANK_ORDER: Record<string, number> = {
+  'BRANCA': 1,
+  'CINZA': 2,
+  'AMARELA': 3,
+  'VERDE': 4,
+  'AZUL': 5,
+  'ROXA': 6,
+  'MARROM': 7,
+  'PRETA': 8,
+  'VERMELHA E PRETA': 9,
+  'VERMELHA E BRANCA': 10,
+  'VERMELHA': 11,
+};
+
+export const getBeltWeight = (belt?: string, stripes?: number): number => {
+  if (!belt) return 10;
+  const b = belt.trim().toUpperCase();
+  const baseRank = BELT_RANK_ORDER[b] || 1;
+  const s = typeof stripes === 'number' && !isNaN(stripes) ? stripes : 0;
+  return baseRank * 10 + s;
+};
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -458,12 +481,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubStudents = subscribeFirestoreCollection<Student>('students', (data) => {
       setStudents(prev => {
-        const saved = localStorage.getItem('bjjcron_students');
+        const prefix = environmentMode === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
+        const saved = localStorage.getItem(`${prefix}students`) || localStorage.getItem('bjjcron_students');
         let localList: Student[] = prev;
         if (saved) { try { localList = JSON.parse(saved); } catch (e) {} }
 
         const cloudItems = data || [];
         const merged: Student[] = [];
+
+        const findInMerged = (id?: string, email?: string, name?: string, regNum?: string) => {
+          const cleanE = email ? email.trim().toLowerCase() : '';
+          const cleanN = name ? name.trim().toLowerCase() : '';
+          const cleanR = regNum ? regNum.trim().toLowerCase() : '';
+          return merged.find(m => 
+            (id && m.id === id) ||
+            (cleanE && m.email && m.email.trim().toLowerCase() === cleanE) ||
+            (cleanR && m.registrationNumber && m.registrationNumber.trim().toLowerCase() === cleanR) ||
+            (cleanN && m.name && m.name.trim().toLowerCase() === cleanN)
+          );
+        };
 
         // 1. Process cloud students
         cloudItems.forEach(cloudSt => {
@@ -486,28 +522,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             (cleanCloudName && s.name && s.name.trim().toLowerCase() === cleanCloudName)
           );
 
-          if (localSt) {
-            const isApproved = cloudSt.approvalStatus === 'APPROVED' || localSt.approvalStatus === 'APPROVED' || (!cloudSt.approvalStatus && !localSt.approvalStatus);
-            const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || localSt.approvalStatus || 'APPROVED');
-            merged.push({
-              ...localSt,
-              ...cloudSt,
-              approvalStatus: bestApproval,
-              active: bestApproval === 'APPROVED' ? true : (cloudSt.active ?? localSt.active ?? true),
-              name: cloudSt.name || localSt.name,
-              email: cloudSt.email || localSt.email,
-              phone: cloudSt.phone || localSt.phone,
-              photoUrl: (cloudSt.photoUrl && !cloudSt.photoUrl.includes('unsplash.com')) ? cloudSt.photoUrl : (localSt.photoUrl || DEFAULT_BLACK_GI_AVATAR),
-              belt: cloudSt.belt || localSt.belt || 'BRANCA',
-              stripes: cloudSt.stripes !== undefined ? cloudSt.stripes : (localSt.stripes || 0),
-              startDate: cloudSt.startDate || localSt.startDate || new Date().toISOString().split('T')[0],
-              totalClassesAttended: Math.max(cloudSt.totalClassesAttended || 0, localSt.totalClassesAttended || 0),
-              classesSinceLastGraduation: Math.max(cloudSt.classesSinceLastGraduation || 0, localSt.classesSinceLastGraduation || 0),
-            });
-          } else {
-            if (!isDeletedRecord(cloudSt.id, cloudSt.email, cloudSt.registrationNumber)) {
-              merged.push(cloudSt);
+          const existingMergedIdx = merged.findIndex(m => 
+            m.id === cloudSt.id || 
+            (cleanCloudEmail && m.email && m.email.trim().toLowerCase() === cleanCloudEmail) ||
+            (cleanCloudName && m.name && m.name.trim().toLowerCase() === cleanCloudName)
+          );
+
+          const isApproved = cloudSt.approvalStatus === 'APPROVED' || (localSt && localSt.approvalStatus === 'APPROVED') || (!cloudSt.approvalStatus && (!localSt || !localSt.approvalStatus));
+          const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || (localSt && localSt.approvalStatus) || 'APPROVED');
+
+          // Rank comparison: NEVER downgrade belt/stripes
+          const localWeight = getBeltWeight(localSt?.belt, localSt?.stripes);
+          const cloudWeight = getBeltWeight(cloudSt?.belt, cloudSt?.stripes);
+
+          let bestBelt = cloudSt.belt || localSt?.belt || 'BRANCA';
+          let bestStripes = cloudSt.stripes !== undefined ? cloudSt.stripes : (localSt?.stripes || 0);
+
+          if (localSt && localWeight > cloudWeight) {
+            bestBelt = localSt.belt;
+            bestStripes = localSt.stripes || 0;
+          }
+
+          const mergedItem: Student = {
+            ...(localSt || {}),
+            ...cloudSt,
+            id: localSt?.id || cloudSt.id,
+            approvalStatus: bestApproval,
+            active: bestApproval === 'APPROVED' ? true : (cloudSt.active ?? localSt?.active ?? true),
+            name: cloudSt.name || localSt?.name || 'Aluno',
+            email: cloudSt.email || localSt?.email || '',
+            phone: cloudSt.phone || localSt?.phone || '',
+            photoUrl: (cloudSt.photoUrl && !cloudSt.photoUrl.includes('unsplash.com')) ? cloudSt.photoUrl : (localSt?.photoUrl || DEFAULT_BLACK_GI_AVATAR),
+            belt: bestBelt,
+            stripes: bestStripes,
+            startDate: cloudSt.startDate || localSt?.startDate || new Date().toISOString().split('T')[0],
+            totalClassesAttended: Math.max(cloudSt.totalClassesAttended || 0, localSt?.totalClassesAttended || 0),
+            classesSinceLastGraduation: Math.max(cloudSt.classesSinceLastGraduation || 0, localSt?.classesSinceLastGraduation || 0),
+          };
+
+          if (existingMergedIdx !== -1) {
+            const currentMergedWeight = getBeltWeight(merged[existingMergedIdx].belt, merged[existingMergedIdx].stripes);
+            const itemWeight = getBeltWeight(mergedItem.belt, mergedItem.stripes);
+            if (itemWeight >= currentMergedWeight) {
+              merged[existingMergedIdx] = mergedItem;
             }
+          } else {
+            merged.push(mergedItem);
           }
         });
 
@@ -521,14 +581,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ) {
             return;
           }
-          const cleanLocEmail = localSt.email ? localSt.email.trim().toLowerCase() : '';
-          const cleanLocName = localSt.name ? localSt.name.trim().toLowerCase() : '';
-
-          const exists = merged.some(m => 
-            m.id === localSt.id || 
-            (cleanLocEmail && m.email && m.email.trim().toLowerCase() === cleanLocEmail) ||
-            (cleanLocName && m.name && m.name.trim().toLowerCase() === cleanLocName)
-          );
+          const exists = findInMerged(localSt.id, localSt.email, localSt.name, localSt.registrationNumber);
           if (!exists) {
             merged.push(localSt);
             saveToFirestore('students', localSt);
@@ -549,14 +602,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 !isTestMockRecord(u.name) &&
                 !isDeletedRecord(u.id, u.email, u.studentId)
               ) {
-                const cleanUEmail = u.email ? u.email.trim().toLowerCase() : '';
-                const cleanUName = u.name ? u.name.trim().toLowerCase() : '';
-                const exists = merged.some(s => 
-                  (u.studentId && s.id === u.studentId) || 
-                  (cleanUEmail && s.email && s.email.trim().toLowerCase() === cleanUEmail) ||
-                  (cleanUName && s.name && s.name.trim().toLowerCase() === cleanUName)
-                );
+                const exists = findInMerged(u.studentId, u.email, u.name);
                 if (!exists) {
+                  const prevMatch = localList.find(s => s.id === u.studentId || (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
                   const autoStudent: Student = {
                     id: u.studentId || `std-${u.id}`,
                     registrationNumber: `BJJ-2026-${String(merged.length + 1).padStart(3, '0')}`,
@@ -565,11 +613,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     phone: u.phone || '',
                     birthDate: '2000-01-01',
                     photoUrl: u.avatarUrl || DEFAULT_BLACK_GI_AVATAR,
-                    belt: 'BRANCA',
-                    stripes: 0,
+                    belt: prevMatch?.belt || 'BRANCA',
+                    stripes: prevMatch?.stripes || 0,
                     startDate: new Date().toISOString().split('T')[0],
-                    totalClassesAttended: 0,
-                    classesSinceLastGraduation: 0,
+                    totalClassesAttended: prevMatch?.totalClassesAttended || 0,
+                    classesSinceLastGraduation: prevMatch?.classesSinceLastGraduation || 0,
                     weightCategory: 'MÉDIO',
                     ageCategory: 'ADULTO',
                     active: u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED',
@@ -610,13 +658,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setStudents(prev => {
           let updated = false;
           const newList = prev.map(s => {
-            const count = data.filter(a => 
-              a.studentId === s.id || 
-              (s.name && a.studentName && a.studentName.trim().toLowerCase() === s.name.trim().toLowerCase())
-            ).length;
-            if (count > (s.totalClassesAttended || 0)) {
+            const count = getStudentAttendances(s, data, 'ALL').length;
+            const actualTotal = Math.max(s.totalClassesAttended || 0, count);
+            if (s.totalClassesAttended !== actualTotal) {
               updated = true;
-              return { ...s, totalClassesAttended: count };
+              return { ...s, totalClassesAttended: actualTotal };
             }
             return s;
           });
@@ -639,11 +685,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setStudents(prev => {
           let updated = false;
           const newList = prev.map(s => {
-            const studentGrads = data.filter(g => g.studentId === s.id);
+            const cleanSEmail = s.email ? s.email.trim().toLowerCase() : '';
+            const studentGrads = data.filter(g => 
+              g.studentId === s.id || 
+              (cleanSEmail && g.studentId && g.studentId.trim().toLowerCase() === cleanSEmail)
+            );
             if (studentGrads.length > 0) {
               studentGrads.sort((a,b) => new Date(b.promotedAt).getTime() - new Date(a.promotedAt).getTime());
               const latestGrad = studentGrads[0];
-              if (latestGrad.belt && (latestGrad.belt !== s.belt || latestGrad.stripes !== s.stripes)) {
+              const gradWeight = getBeltWeight(latestGrad.belt, latestGrad.stripes);
+              const currentWeight = getBeltWeight(s.belt, s.stripes);
+
+              if (latestGrad.belt && gradWeight > currentWeight) {
                 updated = true;
                 return { ...s, belt: latestGrad.belt, stripes: latestGrad.stripes ?? s.stripes };
               }
@@ -821,6 +874,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateStudent = (id: string, updates: Partial<Student>) => {
     let updatedStudent: Student | null = null;
     const cleanId = id.trim().toLowerCase();
+
     setStudents(prev => {
       const updated = prev.map(s => {
         if (
@@ -836,7 +890,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       safeSave('bjjcron_students', updated);
       return updated;
     });
-    if (updatedStudent) saveToFirestore('students', updatedStudent);
+
+    if (updatedStudent) {
+      const st = updatedStudent as Student;
+      saveToFirestore('students', st);
+
+      // If belt or stripes were modified, automatically generate a Graduation record so history & sync stay solid!
+      if (updates.belt !== undefined || updates.stripes !== undefined) {
+        const gradRec: Graduation = {
+          id: `grad-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          studentId: st.id,
+          belt: st.belt,
+          stripes: st.stripes,
+          promotedBy: academyConfig.headCoachName || 'Mestre / Professor',
+          promotedAt: new Date().toISOString().split('T')[0],
+          notes: updates.notes || 'Atualização de faixa do cadastro.',
+          classesCountAtPromotion: st.totalClassesAttended,
+        };
+        setGraduations(gPrev => {
+          const nextGrads = [gradRec, ...gPrev.filter(g => g.id !== gradRec.id)];
+          safeSave('bjjcron_graduations', nextGrads);
+          return nextGrads;
+        });
+        saveToFirestore('graduations', gradRec);
+      }
+
+      // Sync corresponding user in bjjcron_users and bjjcron_current_user
+      try {
+        const savedUsers = localStorage.getItem('bjjcron_users');
+        if (savedUsers) {
+          const targetEmail = st.email ? st.email.trim().toLowerCase() : '';
+          const usersList = JSON.parse(savedUsers);
+          const userIdx = usersList.findIndex((u: any) => 
+            (u.studentId === st.id) || 
+            (u.role === 'ALUNO' && targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail)
+          );
+          if (userIdx !== -1) {
+            if (updates.name) usersList[userIdx].name = updates.name;
+            if (updates.email) usersList[userIdx].email = updates.email.trim().toLowerCase();
+            if (updates.phone) usersList[userIdx].phone = updates.phone;
+            if (updates.photoUrl) usersList[userIdx].avatarUrl = updates.photoUrl;
+            if (updates.approvalStatus) usersList[userIdx].approvalStatus = updates.approvalStatus;
+            localStorage.setItem('bjjcron_users', JSON.stringify(usersList));
+            saveToFirestore('users', usersList[userIdx]);
+          }
+        }
+
+        // Update current user if matching
+        const savedCurr = localStorage.getItem('bjjcron_current_user');
+        if (savedCurr) {
+          const curr = JSON.parse(savedCurr);
+          const targetEmail = st.email ? st.email.trim().toLowerCase() : '';
+          if (
+            curr.studentId === st.id ||
+            (curr.role === 'ALUNO' && targetEmail && curr.email && curr.email.trim().toLowerCase() === targetEmail)
+          ) {
+            if (updates.name) curr.name = updates.name;
+            if (updates.email) curr.email = updates.email.trim().toLowerCase();
+            if (updates.phone) curr.phone = updates.phone;
+            if (updates.photoUrl) curr.avatarUrl = updates.photoUrl;
+            localStorage.setItem('bjjcron_current_user', JSON.stringify(curr));
+          }
+        }
+        window.dispatchEvent(new Event('bjjcron_users_updated'));
+      } catch (e) {
+        console.error('Error updating user in bjjcron_users:', e);
+      }
+    }
 
     fetch(`/api/students/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -844,47 +964,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify(updates),
     }).catch(() => {});
 
-    // Also update corresponding user in bjjcron_users and bjjcron_current_user
-    try {
-      const savedUsers = localStorage.getItem('bjjcron_users');
-      if (savedUsers && updatedStudent) {
-        const targetEmail = (updatedStudent as Student).email ? (updatedStudent as Student).email.trim().toLowerCase() : '';
-        const usersList = JSON.parse(savedUsers);
-        const userIdx = usersList.findIndex((u: any) => 
-          (u.studentId === id) || 
-          (u.role === 'ALUNO' && targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail)
-        );
-        if (userIdx !== -1) {
-          if (updates.name) usersList[userIdx].name = updates.name;
-          if (updates.email) usersList[userIdx].email = updates.email.trim().toLowerCase();
-          if (updates.phone) usersList[userIdx].phone = updates.phone;
-          if (updates.photoUrl) usersList[userIdx].avatarUrl = updates.photoUrl;
-          if (updates.approvalStatus) usersList[userIdx].approvalStatus = updates.approvalStatus;
-          localStorage.setItem('bjjcron_users', JSON.stringify(usersList));
-          saveToFirestore('users', usersList[userIdx]);
-        }
-      }
-
-      // Update current user if matching
-      const savedCurr = localStorage.getItem('bjjcron_current_user');
-      if (savedCurr && updatedStudent) {
-        const curr = JSON.parse(savedCurr);
-        const targetEmail = (updatedStudent as Student).email ? (updatedStudent as Student).email.trim().toLowerCase() : '';
-        if (
-          curr.studentId === id ||
-          (curr.role === 'ALUNO' && targetEmail && curr.email && curr.email.trim().toLowerCase() === targetEmail)
-        ) {
-          if (updates.name) curr.name = updates.name;
-          if (updates.email) curr.email = updates.email.trim().toLowerCase();
-          if (updates.phone) curr.phone = updates.phone;
-          if (updates.photoUrl) curr.avatarUrl = updates.photoUrl;
-          localStorage.setItem('bjjcron_current_user', JSON.stringify(curr));
-        }
-      }
-      window.dispatchEvent(new Event('bjjcron_users_updated'));
-    } catch (e) {
-      console.error('Error updating user in bjjcron_users:', e);
-    }
     window.dispatchEvent(new Event('bjjcron_students_updated'));
   };
 
@@ -930,39 +1009,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     promotedBy: string,
     notes?: string
   ) => {
-    const student = students.find(s => s.id === studentId);
+    const cleanId = studentId.trim().toLowerCase();
+    const student = students.find(s => 
+      s.id === studentId || 
+      (s.email && s.email.trim().toLowerCase() === cleanId) ||
+      (s.registrationNumber && s.registrationNumber.trim().toLowerCase() === cleanId)
+    );
     if (!student) return;
 
+    const realId = student.id;
+
     const newGraduation: Graduation = {
-      id: `grad-${Date.now()}`,
-      studentId,
+      id: `grad-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      studentId: realId,
       belt: newBelt,
       stripes: newStripes,
-      promotedBy,
+      promotedBy: promotedBy || academyConfig.headCoachName || 'Mestre / Professor',
       promotedAt: new Date().toISOString().split('T')[0],
-      notes,
+      notes: notes || 'Graduação outorgada por mérito.',
       classesCountAtPromotion: student.totalClassesAttended,
     };
 
-    setGraduations(prev => [newGraduation, ...prev]);
+    setGraduations(prev => {
+      const nextGrads = [newGraduation, ...prev];
+      safeSave('bjjcron_graduations', nextGrads);
+      return nextGrads;
+    });
     saveToFirestore('graduations', newGraduation);
 
-    const updatedStudentObj = {
+    const updatedStudentObj: Student = {
       ...student,
       belt: newBelt,
       stripes: newStripes,
       classesSinceLastGraduation: 0,
     };
 
-    setStudents(prev => prev.map(s => {
-      if (s.id === studentId) {
-        return updatedStudentObj;
-      }
-      return s;
-    }));
+    setStudents(prev => {
+      const nextStudents = prev.map(s => {
+        if (
+          s.id === realId || 
+          (s.email && student.email && s.email.trim().toLowerCase() === student.email.trim().toLowerCase())
+        ) {
+          return updatedStudentObj;
+        }
+        return s;
+      });
+      safeSave('bjjcron_students', nextStudents);
+      return nextStudents;
+    });
+
     saveToFirestore('students', updatedStudentObj);
 
-    fetch(`/api/students/${encodeURIComponent(studentId)}`, {
+    fetch(`/api/students/${encodeURIComponent(realId)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -971,6 +1069,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         classesSinceLastGraduation: 0,
       }),
     }).catch(() => {});
+
+    window.dispatchEvent(new Event('bjjcron_students_updated'));
   };
 
   const requestBeltChange = (

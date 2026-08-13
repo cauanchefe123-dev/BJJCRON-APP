@@ -6,6 +6,7 @@ import { Student, BeltType } from '../../types';
 import { DEFAULT_BLACK_GI_AVATAR, getStudentAvatar } from '../../constants/avatar';
 import { getTrainingTimeText } from '../../utils/trainingTime';
 import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
+import { getStudentTotalClasses } from '../../utils/ranking';
 import { Search, UserPlus, Award, Filter, ShieldCheck, MoreVertical, Trash2, Edit3, Phone, Mail, IdCard, UserCheck, Check, X, AlertCircle, Clock } from 'lucide-react';
 import { SendEmailModal } from './SendEmailModal';
 
@@ -22,7 +23,7 @@ export const StudentList: React.FC<StudentListProps> = ({
   onOpenCardModal,
   onOpenEditModal,
 }) => {
-  const { students, deleteStudent, updateStudent, academyConfig } = useData();
+  const { students, attendances, deleteStudent, updateStudent, academyConfig } = useData();
   const { approveUser, rejectUser, currentUser } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -252,11 +253,12 @@ export const StudentList: React.FC<StudentListProps> = ({
 
                     <td className="py-3.5 px-4 font-bold text-slate-200">
                       {(() => {
+                        const totalClasses = getStudentTotalClasses(s, attendances);
                         const target = getStudentGraduationTarget(s, academyConfig);
                         const isEligible = isStudentEligibleForGraduation(s, academyConfig);
                         return (
                           <div>
-                            <span>{s.totalClassesAttended} treinos total</span>
+                            <span>{totalClasses} treinos total</span>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className={`text-[10px] ${isEligible ? 'text-emerald-400 font-extrabold' : 'text-slate-400 font-semibold'}`}>
                                 {s.classesSinceLastGraduation}/{target} pós-grau

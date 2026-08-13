@@ -79,6 +79,15 @@ export function getStudentAttendances(
   return studentRecords;
 }
 
+export function getStudentTotalClasses(
+  student: Student,
+  attendances: AttendanceRecord[]
+): number {
+  if (!student) return 0;
+  const allRecords = getStudentAttendances(student, attendances || [], 'ALL');
+  return Math.max(allRecords.length, student.totalClassesAttended || 0);
+}
+
 export function calculateRanking(
   students: Student[],
   attendances: AttendanceRecord[],

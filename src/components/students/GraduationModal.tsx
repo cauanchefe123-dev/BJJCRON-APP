@@ -5,6 +5,7 @@ import { BeltType, Student } from '../../types';
 import { BeltBadge } from '../belts/BeltBadge';
 import { Award, X, Sparkles, CheckCircle2, Clock, Check, AlertCircle } from 'lucide-react';
 import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../../utils/graduation';
+import { getStudentTotalClasses } from '../../utils/ranking';
 
 interface GraduationModalProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
   studentToGraduate,
 }) => {
   const { currentUser } = useAuth();
-  const { students, promoteStudent, academyConfig, beltRequests, approveBeltChange, rejectBeltChange } = useData();
+  const { students, attendances, promoteStudent, academyConfig, beltRequests, approveBeltChange, rejectBeltChange } = useData();
 
   const [activeTab, setActiveTab] = useState<'PROMOTE' | 'REQUESTS'>('PROMOTE');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -127,7 +128,7 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
               >
                 {students.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.belt} - {s.stripes}º Grau) - {s.totalClassesAttended} treinos
+                    {s.name} ({s.belt} - {s.stripes}º Grau) - {getStudentTotalClasses(s, attendances)} treinos
                   </option>
                 ))}
               </select>
