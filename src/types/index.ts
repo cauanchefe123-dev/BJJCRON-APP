@@ -248,5 +248,6 @@ export interface WeeklyPosition {
   keyDetails?: string[]; // Ex: ["Pegada na gola funda", "Fuga de quadril", "Pressão com joelho"]
   videoUrl?: string;
   isCurrentFocus?: boolean;
+  learnedByStudentIds?: string[]; // IDs dos alunos que aprenderam esta técnica
   createdAt: string;
 }

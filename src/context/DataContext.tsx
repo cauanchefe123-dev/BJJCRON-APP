@@ -113,6 +113,7 @@ interface DataContextType {
   addWeeklyPosition: (position: Omit<WeeklyPosition, 'id' | 'createdAt'>) => WeeklyPosition;
   updateWeeklyPosition: (id: string, updates: Partial<WeeklyPosition>) => void;
   deleteWeeklyPosition: (id: string) => void;
+  toggleStudentLearnedPosition: (positionId: string, studentId: string) => void;
 
   // Config Actions
   updateAcademyConfig: (updates: Partial<AcademyConfig>) => void;
@@ -1776,6 +1777,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     removeFromFirestore('weeklyPositions', id);
   };
 
+  const toggleStudentLearnedPosition = (positionId: string, studentId: string) => {
+    let updatedPos: WeeklyPosition | null = null;
+    setWeeklyPositions(prev => {
+      const updated = prev.map(p => {
+        if (p.id === positionId) {
+          const currentList = p.learnedByStudentIds || [];
+          const isLearned = currentList.includes(studentId);
+          const nextList = isLearned
+            ? currentList.filter(id => id !== studentId)
+            : [...currentList, studentId];
+          
+          updatedPos = { ...p, learnedByStudentIds: nextList };
+          return updatedPos;
+        }
+        return p;
+      });
+      localStorage.setItem('bjjcron_weekly_positions', JSON.stringify(updated));
+      return updated;
+    });
+    if (updatedPos) {
+      saveToFirestore('weeklyPositions', updatedPos);
+    }
+  };
+
   // Config
   const updateAcademyConfig = (updates: Partial<AcademyConfig>) => {
     setAcademyConfig(prev => {
@@ -1932,6 +1957,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addWeeklyPosition,
       updateWeeklyPosition,
       deleteWeeklyPosition,
+      toggleStudentLearnedPosition,
       updateAcademyConfig,
       environmentMode,
       isHomologationMode: environmentMode === 'HOMOLOG',
