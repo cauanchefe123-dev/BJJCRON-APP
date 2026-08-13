@@ -160,6 +160,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       !isTestMockRecord(s.id) &&
       !isTestMockRecord(s.email) &&
       !isTestMockRecord(s.name) &&
+      !isTestMockRecord(s.registrationNumber) &&
       !isDeletedRecord(s.id, s.email, s.registrationNumber)
     );
 
@@ -177,76 +178,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
     const saved = localStorage.getItem('bjjcron_teachers');
     const rawList: Teacher[] = saved ? JSON.parse(saved) : INITIAL_TEACHERS;
-    return rawList.map(t => ({
-      ...t,
-      photoUrl: (!t.photoUrl || t.photoUrl.includes('unsplash.com')) ? DEFAULT_BLACK_GI_AVATAR : t.photoUrl
-    }));
+    return rawList
+      .filter(t => !isTestMockRecord(t.id) && !isTestMockRecord(t.email) && !isTestMockRecord(t.name))
+      .map(t => ({
+        ...t,
+        photoUrl: (!t.photoUrl || t.photoUrl.includes('unsplash.com')) ? DEFAULT_BLACK_GI_AVATAR : t.photoUrl
+      }));
   });
 
   const [classes, setClasses] = useState<BJJClass[]>(() => {
     const saved = localStorage.getItem('bjjcron_classes');
-    return saved ? JSON.parse(saved) : INITIAL_CLASSES;
+    const rawList: BJJClass[] = saved ? JSON.parse(saved) : INITIAL_CLASSES;
+    return rawList.filter(c => !isTestMockRecord(c.id) && !isTestMockRecord(c.title));
   });
 
   const [attendances, setAttendances] = useState<AttendanceRecord[]>(() => {
     const saved = localStorage.getItem('bjjcron_attendances');
-    return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
+    const rawList: AttendanceRecord[] = saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
+    return rawList.filter(a => !isTestMockRecord(a.id) && !isTestMockRecord(a.studentId) && !isTestMockRecord(a.studentName));
   });
 
   const [payments, setPayments] = useState<PaymentRecord[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}payments`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_payments', JSON.stringify(INITIAL_PAYMENTS));
-      return INITIAL_PAYMENTS;
-    }
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_payments');
+    const rawList: PaymentRecord[] = saved ? JSON.parse(saved) : [];
+    return rawList.filter(p => !isTestMockRecord(p.id) && !isTestMockRecord(p.studentId) && !isTestMockRecord(p.studentName));
   });
 
   const [graduations, setGraduations] = useState<Graduation[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}graduations`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_graduations', JSON.stringify(INITIAL_GRADUATIONS));
-      return INITIAL_GRADUATIONS;
-    }
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_graduations');
+    const rawList: Graduation[] = saved ? JSON.parse(saved) : [];
+    return rawList.filter(g => !isTestMockRecord(g.id) && !isTestMockRecord(g.studentId));
   });
 
   const [beltRequests, setBeltRequests] = useState<BeltChangeRequest[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}belt_requests`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_belt_requests', JSON.stringify(INITIAL_BELT_REQUESTS));
-      return INITIAL_BELT_REQUESTS;
-    }
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_belt_requests');
+    const rawList: BeltChangeRequest[] = saved ? JSON.parse(saved) : [];
+    return rawList.filter(b => !isTestMockRecord(b.id) && !isTestMockRecord(b.studentId) && !isTestMockRecord(b.studentName));
   });
 
   const [trainingLogs, setTrainingLogs] = useState<TrainingLog[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}training_logs`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_training_logs', JSON.stringify([]));
-      return [];
-    }
+    const saved = localStorage.getItem('bjjcron_training_logs');
     const parsed: TrainingLog[] = saved ? JSON.parse(saved) : [];
-    return parsed.filter(l => l.id !== 'log-1' && l.id !== 'log-2' && l.studentId !== 'std-1');
+    return parsed.filter(l => !isTestMockRecord(l.id) && !isTestMockRecord(l.studentId));
   });
 
   const [teacherObservations, setTeacherObservations] = useState<TeacherObservation[]>(() => {
-    const env = (localStorage.getItem('bjjcron_env_mode') === 'HOMOLOG') ? 'HOMOLOG' : 'PROD';
-    const prefix = env === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';
-    const saved = localStorage.getItem(`${prefix}teacher_observations`);
-    if (!saved && env === 'HOMOLOG') {
-      localStorage.setItem('bjjcron_homolog_teacher_observations', JSON.stringify(INITIAL_TEACHER_OBSERVATIONS));
-      return INITIAL_TEACHER_OBSERVATIONS;
-    }
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('bjjcron_teacher_observations');
+    const rawList: TeacherObservation[] = saved ? JSON.parse(saved) : [];
+    return rawList.filter(o => !isTestMockRecord(o.id) && !isTestMockRecord(o.studentId) && !isTestMockRecord(o.studentName));
   });
 
   const INITIAL_DEFAULT_NOTIFICATIONS: AppNotification[] = [];
@@ -511,6 +490,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isTestMockRecord(cloudSt.id) || 
             isTestMockRecord(cloudSt.email) ||
             isTestMockRecord(cloudSt.name) ||
+            isTestMockRecord(cloudSt.registrationNumber) ||
             isDeletedRecord(cloudSt.id, cloudSt.email, cloudSt.registrationNumber)
           ) {
             removeFromFirestore('students', cloudSt.id);
@@ -581,6 +561,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isTestMockRecord(localSt.id) || 
             isTestMockRecord(localSt.email) ||
             isTestMockRecord(localSt.name) ||
+            isTestMockRecord(localSt.registrationNumber) ||
             isDeletedRecord(localSt.id, localSt.email, localSt.registrationNumber)
           ) {
             return;

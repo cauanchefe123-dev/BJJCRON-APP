@@ -93,7 +93,8 @@ const getSyncedInitialUsers = (): User[] => {
           isTestMockRecord(std.id) ||
           isTestMockRecord(std.email) ||
           isTestMockRecord(std.name) ||
-          isDeletedRecord(std.id, std.email)
+          isTestMockRecord(std.registrationNumber) ||
+          isDeletedRecord(std.id, std.email, std.registrationNumber)
         ) {
           return;
         }

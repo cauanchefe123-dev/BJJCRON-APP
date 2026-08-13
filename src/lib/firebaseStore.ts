@@ -100,13 +100,15 @@ export async function purgeTestMockDataFromFirestore() {
         const name = d.name || d.studentName || d.authorName || '';
         const email = d.email || '';
         const studentId = d.studentId || '';
+        const regNum = d.registrationNumber || '';
 
         if (
           isTestMockRecord(id) ||
           isTestMockRecord(name) ||
           isTestMockRecord(email) ||
           isTestMockRecord(studentId) ||
-          isDeletedRecord(id, email, studentId)
+          isTestMockRecord(regNum) ||
+          isDeletedRecord(id, email, studentId, regNum)
         ) {
           batch.delete(docSnap.ref);
           count++;
