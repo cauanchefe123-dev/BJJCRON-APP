@@ -73,7 +73,7 @@ interface DataContextType {
   addStudent: (student: Omit<Student, 'id' | 'registrationNumber' | 'qrCodeToken' | 'totalClassesAttended' | 'classesSinceLastGraduation'>) => Student;
   updateStudent: (id: string, updates: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
-  promoteStudent: (studentId: string, newBelt: BeltType, newStripes: number, promotedBy: string, notes?: string) => void;
+  promoteStudent: (studentId: string, newBelt: BeltType, newStripes: number, promotedBy: string, notes?: string, promotedAt?: string) => void;
   requestBeltChange: (studentId: string, requestedBelt: BeltType, requestedStripes: number, notes?: string) => { success: boolean; message: string };
   approveBeltChange: (requestId: string, reviewerName: string) => void;
   rejectBeltChange: (requestId: string, reviewerName: string) => void;
@@ -897,16 +897,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const st = updatedStudent as Student;
       saveToFirestore('students', st);
 
-      // If belt or stripes were modified, automatically generate a Graduation record so history & sync stay solid!
-      if (updates.belt !== undefined || updates.stripes !== undefined) {
+      // If belt, stripes or lastGraduationDate were modified, automatically generate/update Graduation record
+      if (updates.belt !== undefined || updates.stripes !== undefined || updates.lastGraduationDate !== undefined) {
+        const gradDate = updates.lastGraduationDate || st.lastGraduationDate || new Date().toISOString().split('T')[0];
         const gradRec: Graduation = {
           id: `grad-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           studentId: st.id,
           belt: st.belt,
           stripes: st.stripes,
           promotedBy: academyConfig.headCoachName || 'Mestre / Professor',
-          promotedAt: new Date().toISOString().split('T')[0],
-          notes: updates.notes || 'Atualização de faixa do cadastro.',
+          promotedAt: gradDate,
+          notes: updates.notes || 'Atualização de faixa/graduação do cadastro.',
           classesCountAtPromotion: st.totalClassesAttended,
         };
         setGraduations(gPrev => {
@@ -1009,7 +1010,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     newBelt: BeltType,
     newStripes: number,
     promotedBy: string,
-    notes?: string
+    notes?: string,
+    promotedAt?: string
   ) => {
     const cleanId = studentId.trim().toLowerCase();
     const student = students.find(s => 
@@ -1020,6 +1022,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!student) return;
 
     const realId = student.id;
+    const graduationDate = promotedAt || new Date().toISOString().split('T')[0];
 
     const newGraduation: Graduation = {
       id: `grad-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1027,7 +1030,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       belt: newBelt,
       stripes: newStripes,
       promotedBy: promotedBy || academyConfig.headCoachName || 'Mestre / Professor',
-      promotedAt: new Date().toISOString().split('T')[0],
+      promotedAt: graduationDate,
       notes: notes || 'Graduação outorgada por mérito.',
       classesCountAtPromotion: student.totalClassesAttended,
     };
@@ -1044,6 +1047,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       belt: newBelt,
       stripes: newStripes,
       classesSinceLastGraduation: 0,
+      lastGraduationDate: graduationDate,
     };
 
     setStudents(prev => {

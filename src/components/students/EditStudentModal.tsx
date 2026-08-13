@@ -563,7 +563,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <label className="text-slate-300 font-bold block mb-1">Faixa Atual (Professor)</label>
                     <select
@@ -595,6 +595,16 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                       <option value={3}>3 Graus</option>
                       <option value={4}>4 Graus</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação</label>
+                    <input
+                      type="date"
+                      value={formData.lastGraduationDate || new Date().toISOString().split('T')[0]}
+                      onChange={e => setFormData({ ...formData, lastGraduationDate: e.target.value })}
+                      className="w-full bg-slate-950 border border-amber-500/50 rounded-xl p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
                   </div>
 
                   <div>

@@ -22,6 +22,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
     photoUrl: DEFAULT_BLACK_GI_AVATAR,
     belt: 'BRANCA' as BeltType,
     stripes: 0,
+    lastGraduationDate: new Date().toISOString().split('T')[0],
     startDate: new Date().toISOString().split('T')[0],
     initialMonthsTrained: 0,
     customGraduationTargetClasses: undefined as number | undefined,
@@ -46,6 +47,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
       photoUrl: DEFAULT_BLACK_GI_AVATAR,
       belt: 'BRANCA' as BeltType,
       stripes: 0,
+      lastGraduationDate: new Date().toISOString().split('T')[0],
       startDate: new Date().toISOString().split('T')[0],
       initialMonthsTrained: 0,
       customGraduationTargetClasses: undefined as number | undefined,
@@ -192,6 +194,16 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
                 value={formData.stripes}
                 onChange={e => setFormData({ ...formData, stripes: parseInt(e.target.value) || 0 })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação / Outorga</label>
+              <input
+                type="date"
+                value={formData.lastGraduationDate || new Date().toISOString().split('T')[0]}
+                onChange={e => setFormData({ ...formData, lastGraduationDate: e.target.value })}
+                className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
               />
             </div>
 

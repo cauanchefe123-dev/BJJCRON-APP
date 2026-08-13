@@ -26,6 +26,7 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
   const [newBelt, setNewBelt] = useState<BeltType>('BRANCA');
   const [newStripes, setNewStripes] = useState<number>(0);
   const [promotedBy, setPromotedBy] = useState<string>(academyConfig.headCoachName);
+  const [promotedAt, setPromotedAt] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>('Outorgado por mérito e dedicação nos treinos.');
 
   const pendingRequests = beltRequests.filter(r => r.status === 'PENDING');
@@ -53,7 +54,7 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
     e.preventDefault();
     if (!currentStudent) return;
 
-    promoteStudent(currentStudent.id, newBelt, newStripes, promotedBy, notes);
+    promoteStudent(currentStudent.id, newBelt, newStripes, promotedBy, notes, promotedAt);
     onClose();
   };
 
@@ -203,14 +204,27 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
               <BeltBadge belt={newBelt} stripes={newStripes} size="md" />
             </div>
 
-            <div>
-              <label className="text-slate-300 font-bold block mb-1">Mestre / Professor Outorgante:</label>
-              <input
-                type="text"
-                value={promotedBy}
-                onChange={e => setPromotedBy(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Mestre / Professor Outorgante:</label>
+                <input
+                  type="text"
+                  value={promotedBy}
+                  onChange={e => setPromotedBy(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação / Outorga:</label>
+                <input
+                  type="date"
+                  required
+                  value={promotedAt}
+                  onChange={e => setPromotedAt(e.target.value)}
+                  className="w-full bg-slate-950 border border-amber-500/50 rounded-lg p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
             </div>
 
             <div>

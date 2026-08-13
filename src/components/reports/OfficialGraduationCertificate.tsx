@@ -125,7 +125,11 @@ export const OfficialGraduationCertificate: React.FC<OfficialGraduationCertifica
           </div>
           <div>
             <span className="text-[10px] text-slate-500 uppercase font-semibold block">DATA DA OUTORGA</span>
-            <span className="text-sm font-bold text-slate-900">{new Date().toLocaleDateString('pt-BR')}</span>
+            <span className="text-sm font-bold text-slate-900">
+              {student.lastGraduationDate 
+                ? new Date(student.lastGraduationDate + 'T00:00:00').toLocaleDateString('pt-BR') 
+                : new Date().toLocaleDateString('pt-BR')}
+            </span>
           </div>
         </div>
 

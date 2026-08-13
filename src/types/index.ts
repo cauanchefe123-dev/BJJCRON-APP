@@ -121,6 +121,7 @@ export interface Student {
   paymentDueDateDay: number; // 1-28
   paymentStatus: PaymentStatus;
   lastPaymentDate?: string;
+  lastGraduationDate?: string; // YYYY-MM-DD
   qrCodeToken: string;
   approvalStatus?: 'APPROVED' | 'PENDING' | 'REJECTED';
   hasActivatedAccount?: boolean;
