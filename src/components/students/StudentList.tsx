@@ -44,15 +44,20 @@ export const StudentList: React.FC<StudentListProps> = ({
   };
 
   const filteredStudents = students.filter(s => {
-    // Hide pending students from normal active list unless requested
-    if (s.approvalStatus === 'PENDING' && statusFilter !== 'PENDING') return false;
-
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           s.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          s.email.toLowerCase().includes(searchTerm.toLowerCase());
+                          (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesBelt = beltFilter === 'ALL' || s.belt === beltFilter;
-    const matchesStatus = statusFilter === 'ALL' || (statusFilter === 'ACTIVE' ? s.active : !s.active);
+
+    let matchesStatus = true;
+    if (statusFilter === 'ACTIVE') {
+      matchesStatus = s.active && s.approvalStatus !== 'PENDING';
+    } else if (statusFilter === 'INACTIVE') {
+      matchesStatus = !s.active || s.approvalStatus === 'REJECTED';
+    } else if (statusFilter === 'PENDING') {
+      matchesStatus = s.approvalStatus === 'PENDING';
+    }
 
     return matchesSearch && matchesBelt && matchesStatus;
   });
@@ -196,6 +201,7 @@ export const StudentList: React.FC<StudentListProps> = ({
             <option value="ALL">Todos os Status</option>
             <option value="ACTIVE">Matrícula Ativa</option>
             <option value="INACTIVE">Inativo</option>
+            <option value="PENDING">Aguardando Aprovação ({pendingStudents.length})</option>
           </select>
         </div>
       </div>
@@ -228,7 +234,14 @@ export const StudentList: React.FC<StudentListProps> = ({
                       <div className="flex items-center gap-3">
                         <img src={getStudentAvatar(s)} alt={s.name} className="w-10 h-10 rounded-full object-cover border border-amber-400/40 bg-slate-900" />
                         <div>
-                          <p className="font-bold text-slate-100">{s.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-slate-100">{s.name}</p>
+                            {s.approvalStatus === 'PENDING' && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                                PENDENTE
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-slate-400 flex items-center gap-2">
                             <span>{s.phone}</span> • <span>{s.ageCategory}</span>
                           </p>
@@ -276,6 +289,17 @@ export const StudentList: React.FC<StudentListProps> = ({
 
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {s.approvalStatus === 'PENDING' && (
+                          <button
+                            onClick={() => handleApprove(s)}
+                            className="p-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black flex items-center gap-1 shadow-md cursor-pointer animate-pulse"
+                            title="Aprovar Vínculo do Aluno na Equipe"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            Aprovar
+                          </button>
+                        )}
+
                         {onOpenEditModal && (
                           <button
                             onClick={() => onOpenEditModal(s)}

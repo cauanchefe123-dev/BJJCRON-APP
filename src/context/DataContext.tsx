@@ -596,7 +596,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             allUsers.forEach(u => {
               if (
                 u.role === 'ALUNO' && 
-                u.approvalStatus === 'APPROVED' && 
                 !isTestMockRecord(u.id) && 
                 !isTestMockRecord(u.email) &&
                 !isTestMockRecord(u.name) &&
@@ -605,6 +604,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const exists = findInMerged(u.studentId, u.email, u.name);
                 if (!exists) {
                   const prevMatch = localList.find(s => s.id === u.studentId || (s.email && u.email && s.email.trim().toLowerCase() === u.email.trim().toLowerCase()));
+                  const isApproved = u.approvalStatus === 'APPROVED' || prevMatch?.approvalStatus === 'APPROVED';
+                  const statusVal = isApproved ? 'APPROVED' : (u.approvalStatus || prevMatch?.approvalStatus || 'PENDING');
+
                   const autoStudent: Student = {
                     id: u.studentId || `std-${u.id}`,
                     registrationNumber: `BJJ-2026-${String(merged.length + 1).padStart(3, '0')}`,
@@ -620,13 +622,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     classesSinceLastGraduation: prevMatch?.classesSinceLastGraduation || 0,
                     weightCategory: 'MÉDIO',
                     ageCategory: 'ADULTO',
-                    active: u.approvalStatus !== 'PENDING' && u.approvalStatus !== 'REJECTED',
+                    active: statusVal === 'APPROVED',
                     planName: 'Plano Mensal Padrão',
                     planPrice: 240,
                     paymentDueDateDay: 10,
                     paymentStatus: 'PENDENTE',
                     qrCodeToken: `BJJCRON-${u.studentId || u.id}`,
-                    approvalStatus: u.approvalStatus || 'APPROVED',
+                    approvalStatus: statusVal,
                     notes: 'Atleta integrado via usuário',
                     hasActivatedAccount: true,
                   };
