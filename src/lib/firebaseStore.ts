@@ -8,6 +8,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { isTestMockRecord, isDeletedRecord } from './deletionTracker';
 
 export async function saveToFirestore<T extends { id: string }>(collectionName: string, item: T) {
   try {
@@ -67,6 +68,58 @@ export function subscribeFirestoreConfig(callback: (config: any) => void) {
   } catch (err) {
     console.warn('[Firestore] Falha ao iniciar escuta nas configurações:', err);
     return () => {};
+  }
+}
+
+export async function purgeTestMockDataFromFirestore() {
+  const collectionsToCheck = [
+    'students',
+    'users',
+    'teachers',
+    'classes',
+    'attendances',
+    'payments',
+    'graduations',
+    'beltRequests',
+    'trainingLogs',
+    'teacherObservations',
+    'notifications',
+  ];
+
+  for (const colName of collectionsToCheck) {
+    try {
+      const snap = await getDocs(collection(db, colName));
+      if (snap.empty) continue;
+
+      const batch = writeBatch(db);
+      let count = 0;
+
+      snap.docs.forEach((docSnap) => {
+        const d = docSnap.data() as any;
+        const id = d.id || docSnap.id;
+        const name = d.name || d.studentName || d.authorName || '';
+        const email = d.email || '';
+        const studentId = d.studentId || '';
+
+        if (
+          isTestMockRecord(id) ||
+          isTestMockRecord(name) ||
+          isTestMockRecord(email) ||
+          isTestMockRecord(studentId) ||
+          isDeletedRecord(id, email, studentId)
+        ) {
+          batch.delete(docSnap.ref);
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        console.log(`[Firestore] Removidos ${count} registros de teste/excluídos de '${colName}'.`);
+      }
+    } catch (err) {
+      console.warn(`[Firestore] Erro ao purgar registros de teste em '${colName}':`, err);
+    }
   }
 }
 
@@ -141,3 +194,4 @@ export async function seedInitialFirestoreData(data: {
     console.warn('[Firestore] Erro ao popular carga inicial na nuvem:', err);
   }
 }
+

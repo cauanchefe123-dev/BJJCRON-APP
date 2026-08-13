@@ -45,7 +45,16 @@ export function isTestMockRecord(val: string | undefined | null): boolean {
     str.includes('camila.oliveira') ||
     str.includes('testmock') ||
     str.includes('mockdata') ||
-    str.includes('dummyuser')
+    str.includes('dummyuser') ||
+    str.includes('rafael mendes') ||
+    str.includes('camila oliveira') ||
+    str === 'std-1' ||
+    str === 'std-2' ||
+    str === 'user-std-1' ||
+    str === 'user-std-2' ||
+    str.includes('aluno_teste') ||
+    str === 'teste' ||
+    str === 'test'
   ) {
     return true;
   }

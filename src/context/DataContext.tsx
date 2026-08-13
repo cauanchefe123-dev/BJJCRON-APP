@@ -44,6 +44,7 @@ import {
   subscribeFirestoreCollection,
   subscribeFirestoreConfig,
   clearAllFirestoreCollections,
+  purgeTestMockDataFromFirestore,
 } from '../lib/firebaseStore';
 
 interface DataContextType {
@@ -479,6 +480,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Real-time Firestore Cloud Synchronization
   useEffect(() => {
+    // Purge any lingering test or mock records from Firestore automatically
+    purgeTestMockDataFromFirestore();
+
     const unsubStudents = subscribeFirestoreCollection<Student>('students', (data) => {
       setStudents(prev => {
         const prefix = environmentMode === 'HOMOLOG' ? 'bjjcron_homolog_' : 'bjjcron_';

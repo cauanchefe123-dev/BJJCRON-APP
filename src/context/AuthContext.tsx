@@ -233,7 +233,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 1. Merge cloud users with local state
         cList.forEach((u: User) => {
-          if (isDeletedRecord(u.id, u.email, u.studentId)) {
+          if (
+            isTestMockRecord(u.id) ||
+            isTestMockRecord(u.email) ||
+            isTestMockRecord(u.name) ||
+            isDeletedRecord(u.id, u.email, u.studentId)
+          ) {
+            if (u.id) removeFromFirestore('users', u.id);
             return;
           }
 
@@ -262,7 +268,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 2. Preserve local users missing from cloud
         prev.forEach(localU => {
-          if (isDeletedRecord(localU.id, localU.email, localU.studentId)) {
+          if (
+            isTestMockRecord(localU.id) ||
+            isTestMockRecord(localU.email) ||
+            isTestMockRecord(localU.name) ||
+            isDeletedRecord(localU.id, localU.email, localU.studentId)
+          ) {
             return;
           }
           const exists = merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.trim().toLowerCase() === localU.email.trim().toLowerCase()));
