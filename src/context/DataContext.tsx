@@ -236,66 +236,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return rawList.filter(o => !isTestMockRecord(o.id) && !isTestMockRecord(o.studentId) && !isTestMockRecord(o.studentName));
   });
 
-  const INITIAL_WEEKLY_POSITIONS: WeeklyPosition[] = [
-    {
-      id: 'pos-1',
-      title: 'Raspagem de De La Riva com Tomada de Costas',
-      category: 'RASPAGEM',
-      className: 'Jiu-Jitsu Fundamental (Gi)',
-      professorName: 'Prof. Gabriel Santos',
-      date: getLocalDateStr(),
-      weekLabel: 'Foco da Semana Atual',
-      description: 'Técnica de raspagem partindo da guarda De La Riva dominando a calça e a gola oposta para desequilíbrio e transição rápida para as costas.',
-      keyDetails: [
-        'Garantir a pegada firme na gola funda do mesmo lado ou cruzada',
-        'Entrar o gancho De La Riva bem justo atrás do joelho do adversário',
-        'Desequilibrar para a diagonal frente antes de girar o quadril',
-        'Subir abraçando a cintura com esgrima'
-      ],
-      isCurrentFocus: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'pos-2',
-      title: 'Passagem de Guarda Emborcando (Over-Under)',
-      category: 'PASSAGEM',
-      className: 'Jiu-Jitsu Avançado & Competição',
-      professorName: 'Prof. Gabriel Santos',
-      date: getLocalDateStr(),
-      weekLabel: 'Foco da Semana Atual',
-      description: 'Passagem de guarda alta pressionando com o ombro no plexo, dominando uma perna por cima e outra por baixo.',
-      keyDetails: [
-        'Esgrimar uma perna por baixo da coxa e abraçar a cintura',
-        'Manter a outra mão dominando a calça por fora',
-        'Colocar o peso da testa/ombro no diafragma do parceiro',
-        'Caminhar em leque até liberar o quadril'
-      ],
-      isCurrentFocus: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'pos-3',
-      title: 'Guilhotina da Guarda Aberta (No-Gi)',
-      category: 'NO_GI',
-      className: 'No-Gi / Submission Grappling',
-      professorName: 'Prof. Gabriel Santos',
-      date: getLocalDateStr(),
-      weekLabel: 'Foco da Semana Atual',
-      description: 'Ataque de submissão na cervical aproveitando a entrada de quedado ou postura baixa na guarda aberta.',
-      keyDetails: [
-        'Envolver o pescoço sem dar espaço na axila',
-        'Conectar a pegada mão com mão (High Wrist ou Marcelotine)',
-        'Sentar fechando a guarda e estendendo a coluna com controle de quadril'
-      ],
-      isCurrentFocus: true,
-      createdAt: new Date().toISOString()
-    }
-  ];
+  const INITIAL_WEEKLY_POSITIONS: WeeklyPosition[] = [];
 
   const [weeklyPositions, setWeeklyPositions] = useState<WeeklyPosition[]>(() => {
     const saved = localStorage.getItem('bjjcron_weekly_positions');
     const rawList: WeeklyPosition[] = saved ? JSON.parse(saved) : INITIAL_WEEKLY_POSITIONS;
-    return rawList.filter(p => !isTestMockRecord(p.id) && !isTestMockRecord(p.title));
+    return rawList.filter(p =>
+      p.id !== 'pos-1' &&
+      p.id !== 'pos-2' &&
+      p.id !== 'pos-3' &&
+      !p.title.includes('Raspagem de De La Riva com Tomada') &&
+      !p.title.includes('Passagem de Guarda Emborcando') &&
+      !p.title.includes('Guilhotina da Guarda Aberta') &&
+      !isTestMockRecord(p.id) &&
+      !isTestMockRecord(p.title)
+    );
   });
 
   const INITIAL_DEFAULT_NOTIFICATIONS: AppNotification[] = [];
@@ -436,6 +391,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => { safeSave('bjjcron_teacher_observations', teacherObservations); }, [teacherObservations]);
   useEffect(() => { safeSave('bjjcron_academy_config', academyConfig); }, [academyConfig]);
   useEffect(() => { safeSave('bjjcron_notifications', notifications); }, [notifications]);
+  useEffect(() => { safeSave('bjjcron_weekly_positions', weeklyPositions); }, [weeklyPositions]);
+
+  // Sync positions from classes that have weeklyFocus set (retroactive sync)
+  useEffect(() => {
+    if (classes && classes.length > 0) {
+      classes.forEach(c => {
+        if (c.weeklyFocus && c.weeklyFocus.trim() !== '') {
+          setWeeklyPositions(prev => {
+            const exists = prev.some(
+              p => p.classId === c.id && p.title.toLowerCase() === c.weeklyFocus?.toLowerCase()
+            );
+            if (!exists) {
+              const newPos: WeeklyPosition = {
+                id: `pos-${c.id}`,
+                title: c.weeklyFocus!,
+                category: 'GERAL',
+                classId: c.id,
+                className: c.title,
+                professorName: c.professorName || 'Professor',
+                date: getLocalDateStr(),
+                weekLabel: 'Foco da Semana',
+                description: `Foco técnico da turma ${c.title}`,
+                keyDetails: [],
+                videoUrl: c.weeklyFocusVideoUrl || '',
+                isCurrentFocus: true,
+                createdAt: new Date().toISOString(),
+                learnedByStudentIds: [],
+              };
+              const updated = [newPos, ...prev];
+              saveToFirestore('weeklyPositions', newPos);
+              return updated;
+            }
+            return prev;
+          });
+        }
+      });
+    }
+  }, [classes]);
 
   // Push Notification Handlers
   const requestPushPermission = async (): Promise<NotificationPermission> => {
@@ -1369,6 +1362,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           targetClassId: id,
           targetClassName: className,
           authorName: updates.professorName || targetClass?.professorName || 'Professor / Mestre',
+        });
+
+        // Automatically record position into weeklyPositions
+        setWeeklyPositions(prev => {
+          const existsIndex = prev.findIndex(p => p.classId === id && p.title.toLowerCase() === updates.weeklyFocus?.toLowerCase());
+          let updatedPositions = [...prev];
+          if (existsIndex >= 0) {
+            updatedPositions[existsIndex] = {
+              ...updatedPositions[existsIndex],
+              isCurrentFocus: true,
+              videoUrl: updates.weeklyFocusVideoUrl !== undefined ? updates.weeklyFocusVideoUrl : updatedPositions[existsIndex].videoUrl,
+            };
+          } else {
+            const newPos: WeeklyPosition = {
+              id: `pos-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+              title: updates.weeklyFocus!,
+              category: 'GERAL',
+              classId: id,
+              className: className,
+              professorName: updates.professorName || targetClass?.professorName || 'Professor',
+              date: getLocalDateStr(),
+              weekLabel: 'Foco da Semana',
+              description: `Foco técnico definido para a turma ${className}`,
+              keyDetails: [],
+              videoUrl: updates.weeklyFocusVideoUrl !== undefined ? updates.weeklyFocusVideoUrl : (targetClass?.weeklyFocusVideoUrl || ''),
+              isCurrentFocus: true,
+              createdAt: new Date().toISOString(),
+              learnedByStudentIds: [],
+            };
+            updatedPositions = [newPos, ...updatedPositions];
+            saveToFirestore('weeklyPositions', newPos);
+          }
+          safeSave('bjjcron_weekly_positions', updatedPositions);
+          return updatedPositions;
         });
       }
     }

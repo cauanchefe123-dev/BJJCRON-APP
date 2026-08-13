@@ -63,7 +63,6 @@ export const WeeklyFocusPositionsView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('TODAS');
   const [selectedClassId, setSelectedClassId] = useState<string>('TODAS');
-  const [learnedFilter, setLearnedFilter] = useState<'TODOS' | 'APRENDIDOS' | 'PENDENTES'>('TODOS');
 
   // Favorites Local State
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
@@ -232,8 +231,31 @@ export const WeeklyFocusPositionsView: React.FC = () => {
     setIsFormModalOpen(false);
   };
 
+  // Derive positions from classes that have an active weeklyFocus set
+  const classFocusPositions: WeeklyPosition[] = classes
+    .filter(c => c.weeklyFocus && c.weeklyFocus.trim() !== '')
+    .filter(c => !weeklyPositions.some(p => p.classId === c.id && p.title.toLowerCase() === c.weeklyFocus?.toLowerCase()))
+    .map(c => ({
+      id: `class-focus-${c.id}`,
+      title: c.weeklyFocus!,
+      category: 'GERAL',
+      classId: c.id,
+      className: c.title,
+      professorName: c.professorName || 'Professor',
+      date: new Date().toISOString().split('T')[0],
+      weekLabel: 'Foco Atual da Turma',
+      description: `Foco técnico ativo definido para a turma "${c.title}".`,
+      keyDetails: [],
+      videoUrl: c.weeklyFocusVideoUrl || '',
+      isCurrentFocus: true,
+      createdAt: new Date().toISOString(),
+      learnedByStudentIds: [],
+    }));
+
+  const allPositions = [...weeklyPositions, ...classFocusPositions];
+
   // Filter positions
-  const filteredPositions = weeklyPositions.filter(pos => {
+  const filteredPositions = allPositions.filter(pos => {
     const matchesSearch =
       pos.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pos.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -244,19 +266,14 @@ export const WeeklyFocusPositionsView: React.FC = () => {
     const matchesCategory = selectedCategory === 'TODAS' || pos.category === selectedCategory;
     const matchesClass = selectedClassId === 'TODAS' || pos.classId === selectedClassId;
 
-    const isLearnedByCurrentStudent = pos.learnedByStudentIds?.includes(currentStudentId || '');
-    let matchesLearned = true;
-    if (learnedFilter === 'APRENDIDOS') matchesLearned = !!isLearnedByCurrentStudent;
-    if (learnedFilter === 'PENDENTES') matchesLearned = !isLearnedByCurrentStudent;
-
-    return matchesSearch && matchesCategory && matchesClass && matchesLearned;
+    return matchesSearch && matchesCategory && matchesClass;
   });
 
   // Calculate stats
-  const totalPositionsTaught = weeklyPositions.length;
-  const myLearnedCount = weeklyPositions.filter(p => p.learnedByStudentIds?.includes(currentStudentId || '')).length;
+  const totalPositionsTaught = allPositions.length;
+  const myLearnedCount = allPositions.filter(p => p.learnedByStudentIds?.includes(currentStudentId || '')).length;
   const myLearnedPercentage = totalPositionsTaught > 0 ? Math.round((myLearnedCount / totalPositionsTaught) * 100) : 0;
-  const activeFocusCount = weeklyPositions.filter(p => p.isCurrentFocus).length;
+  const activeFocusCount = allPositions.filter(p => p.isCurrentFocus).length;
 
   return (
     <div className="space-y-6 pb-12 animate-fadeIn">
@@ -393,19 +410,6 @@ export const WeeklyFocusPositionsView: React.FC = () => {
                 </option>
               ))}
             </select>
-
-            {/* Student Filter: Learned status */}
-            {!isStaff && (
-              <select
-                value={learnedFilter}
-                onChange={e => setLearnedFilter(e.target.value as any)}
-                className="px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs font-medium focus:outline-none focus:border-amber-500"
-              >
-                <option value="TODOS">Todas as Posições</option>
-                <option value="APRENDIDOS">Minhas Aprendidas ✓</option>
-                <option value="PENDENTES">Aprender / Revisar ⏳</option>
-              </select>
-            )}
           </div>
         </div>
 
