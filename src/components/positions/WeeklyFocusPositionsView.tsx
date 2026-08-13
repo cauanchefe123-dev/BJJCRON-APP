@@ -268,14 +268,14 @@ export const WeeklyFocusPositionsView: React.FC = () => {
               <Target className="w-5 h-5" />
             </span>
             <span className="text-xs font-black uppercase tracking-wider text-amber-400">
-              Registro Continuo do Currículo Técnico
+              Amostragem do Foco da Semana das Turmas
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-white">
-            Registro do Foco da Semana & Posições Aprendidas
+            Progresso de Aprendizagem
           </h1>
           <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-            Acompanhe o histórico completo de todas as técnicas e focos da semana ministrados pelos professores. Veja em tempo real quais posições os alunos já aprenderam e domine o currículo da academia.
+            Exposição completa de todas as posições ensinadas no Foco da Semana das turmas. Acompanhe o histórico do que já foi ministrado e o progresso de aprendizado dos alunos.
           </p>
         </div>
 
