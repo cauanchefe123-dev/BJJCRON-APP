@@ -234,3 +234,19 @@ export interface RankingItem {
   rank: number;
   badge?: string;
 }
+
+export interface WeeklyPosition {
+  id: string;
+  title: string;
+  category: 'GUARDA' | 'PASSAGEM' | 'FINALIZAÇÃO' | 'RASPAGEM' | 'QUEDA' | 'DEFESA_ESCAPE' | 'CONTROLE_POSIÇÃO' | 'NO_GI' | 'GERAL';
+  classId?: string;
+  className?: string;
+  professorName: string;
+  date: string; // YYYY-MM-DD
+  weekLabel?: string; // Ex: "Semana de 10 a 16 de Agosto"
+  description: string;
+  keyDetails?: string[]; // Ex: ["Pegada na gola funda", "Fuga de quadril", "Pressão com joelho"]
+  videoUrl?: string;
+  isCurrentFocus?: boolean;
+  createdAt: string;
+}

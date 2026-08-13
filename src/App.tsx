@@ -37,6 +37,7 @@ import { ReportsView } from './components/reports/ReportsView';
 import { AcademySettings } from './components/settings/AcademySettings';
 import { AcademyLinkView } from './components/academies/AcademyLinkView';
 import { AdminStudentDashboardView } from './components/dashboard/AdminStudentDashboardView';
+import { WeeklyFocusPositionsView } from './components/positions/WeeklyFocusPositionsView';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
 
 import { PaymentRecord, Student } from './types';
@@ -183,6 +184,8 @@ function MainApp() {
                 )}
 
                 {activeTab === 'journal' && <StudentTrainingJournal />}
+
+                {activeTab === 'weekly-focus' && <WeeklyFocusPositionsView />}
 
                 {activeTab === 'observations' && <TeacherObservationsView />}
 

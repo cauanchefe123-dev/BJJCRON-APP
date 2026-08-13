@@ -210,10 +210,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
             </p>
           </div>
           <button
-            onClick={() => onNavigate('classes')}
-            className="text-xs text-amber-400 font-bold hover:underline"
+            onClick={() => onNavigate('weekly-focus')}
+            className="text-xs text-amber-400 font-bold hover:underline flex items-center gap-1"
           >
-            Ver Grade Completa →
+            <span>Ver Acervo de Posições →</span>
           </button>
         </div>
 

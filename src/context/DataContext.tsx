@@ -13,6 +13,7 @@ import {
   Teacher,
   TeacherObservation,
   TrainingLog,
+  WeeklyPosition,
 } from '../types';
 import { DEFAULT_BLACK_GI_AVATAR } from '../constants/avatar';
 import { checkClassCheckinAvailability } from '../utils/checkin';
@@ -106,6 +107,12 @@ interface DataContextType {
   addTeacherObservation: (obs: Omit<TeacherObservation, 'id' | 'date'>) => void;
   updateTeacherObservation: (id: string, updates: Partial<TeacherObservation>) => void;
   deleteTeacherObservation: (id: string) => void;
+
+  // Weekly Focus Positions Actions
+  weeklyPositions: WeeklyPosition[];
+  addWeeklyPosition: (position: Omit<WeeklyPosition, 'id' | 'createdAt'>) => WeeklyPosition;
+  updateWeeklyPosition: (id: string, updates: Partial<WeeklyPosition>) => void;
+  deleteWeeklyPosition: (id: string) => void;
 
   // Config Actions
   updateAcademyConfig: (updates: Partial<AcademyConfig>) => void;
@@ -226,6 +233,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('bjjcron_teacher_observations');
     const rawList: TeacherObservation[] = saved ? JSON.parse(saved) : [];
     return rawList.filter(o => !isTestMockRecord(o.id) && !isTestMockRecord(o.studentId) && !isTestMockRecord(o.studentName));
+  });
+
+  const INITIAL_WEEKLY_POSITIONS: WeeklyPosition[] = [
+    {
+      id: 'pos-1',
+      title: 'Raspagem de De La Riva com Tomada de Costas',
+      category: 'RASPAGEM',
+      className: 'Jiu-Jitsu Fundamental (Gi)',
+      professorName: 'Prof. Gabriel Santos',
+      date: getLocalDateStr(),
+      weekLabel: 'Foco da Semana Atual',
+      description: 'Técnica de raspagem partindo da guarda De La Riva dominando a calça e a gola oposta para desequilíbrio e transição rápida para as costas.',
+      keyDetails: [
+        'Garantir a pegada firme na gola funda do mesmo lado ou cruzada',
+        'Entrar o gancho De La Riva bem justo atrás do joelho do adversário',
+        'Desequilibrar para a diagonal frente antes de girar o quadril',
+        'Subir abraçando a cintura com esgrima'
+      ],
+      isCurrentFocus: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'pos-2',
+      title: 'Passagem de Guarda Emborcando (Over-Under)',
+      category: 'PASSAGEM',
+      className: 'Jiu-Jitsu Avançado & Competição',
+      professorName: 'Prof. Gabriel Santos',
+      date: getLocalDateStr(),
+      weekLabel: 'Foco da Semana Atual',
+      description: 'Passagem de guarda alta pressionando com o ombro no plexo, dominando uma perna por cima e outra por baixo.',
+      keyDetails: [
+        'Esgrimar uma perna por baixo da coxa e abraçar a cintura',
+        'Manter a outra mão dominando a calça por fora',
+        'Colocar o peso da testa/ombro no diafragma do parceiro',
+        'Caminhar em leque até liberar o quadril'
+      ],
+      isCurrentFocus: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'pos-3',
+      title: 'Guilhotina da Guarda Aberta (No-Gi)',
+      category: 'NO_GI',
+      className: 'No-Gi / Submission Grappling',
+      professorName: 'Prof. Gabriel Santos',
+      date: getLocalDateStr(),
+      weekLabel: 'Foco da Semana Atual',
+      description: 'Ataque de submissão na cervical aproveitando a entrada de quedado ou postura baixa na guarda aberta.',
+      keyDetails: [
+        'Envolver o pescoço sem dar espaço na axila',
+        'Conectar a pegada mão com mão (High Wrist ou Marcelotine)',
+        'Sentar fechando a guarda e estendendo a coluna com controle de quadril'
+      ],
+      isCurrentFocus: true,
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  const [weeklyPositions, setWeeklyPositions] = useState<WeeklyPosition[]>(() => {
+    const saved = localStorage.getItem('bjjcron_weekly_positions');
+    const rawList: WeeklyPosition[] = saved ? JSON.parse(saved) : INITIAL_WEEKLY_POSITIONS;
+    return rawList.filter(p => !isTestMockRecord(p.id) && !isTestMockRecord(p.title));
   });
 
   const INITIAL_DEFAULT_NOTIFICATIONS: AppNotification[] = [];
@@ -718,6 +787,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubTeacherObs = subscribeFirestoreCollection<TeacherObservation>('teacherObservations', (data) => {
       setTeacherObservations(data);
+    });
+
+    const unsubWeeklyPositions = subscribeFirestoreCollection<WeeklyPosition>('weeklyPositions', (data) => {
+      const realPositions = (data || []).filter(p => !isTestMockRecord(p.id) && !isTestMockRecord(p.title));
+      if (realPositions.length > 0) {
+        setWeeklyPositions(realPositions);
+        safeSave('bjjcron_weekly_positions', realPositions);
+      }
     });
 
     const unsubNotifications = subscribeFirestoreCollection<AppNotification>('notifications', (data) => {
@@ -1644,6 +1721,61 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetch(`/api/teacher-observations/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
   };
 
+  // Weekly Focus Positions
+  const addWeeklyPosition = (positionData: Omit<WeeklyPosition, 'id' | 'createdAt'>): WeeklyPosition => {
+    const newPos: WeeklyPosition = {
+      ...positionData,
+      id: `pos-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setWeeklyPositions(prev => {
+      const updated = [newPos, ...prev];
+      localStorage.setItem('bjjcron_weekly_positions', JSON.stringify(updated));
+      return updated;
+    });
+    saveToFirestore('weeklyPositions', newPos);
+
+    // Also trigger notification if it's set as current focus
+    if (newPos.isCurrentFocus) {
+      addNotification({
+        title: `🎯 Nova Posição/Foco: ${newPos.title}`,
+        message: `O professor cadastrou o foco técnico: "${newPos.title}" (${newPos.className || 'Todas as Turmas'})`,
+        type: 'WEEKLY_FOCUS',
+        targetClassName: newPos.className || 'Academia',
+        authorName: newPos.professorName || 'Professor'
+      });
+    }
+
+    return newPos;
+  };
+
+  const updateWeeklyPosition = (id: string, updates: Partial<WeeklyPosition>) => {
+    let updatedItem: WeeklyPosition | null = null;
+    setWeeklyPositions(prev => {
+      const updated = prev.map(p => {
+        if (p.id === id) {
+          updatedItem = { ...p, ...updates };
+          return updatedItem;
+        }
+        return p;
+      });
+      localStorage.setItem('bjjcron_weekly_positions', JSON.stringify(updated));
+      return updated;
+    });
+    if (updatedItem) {
+      saveToFirestore('weeklyPositions', updatedItem);
+    }
+  };
+
+  const deleteWeeklyPosition = (id: string) => {
+    setWeeklyPositions(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      localStorage.setItem('bjjcron_weekly_positions', JSON.stringify(updated));
+      return updated;
+    });
+    removeFromFirestore('weeklyPositions', id);
+  };
+
   // Config
   const updateAcademyConfig = (updates: Partial<AcademyConfig>) => {
     setAcademyConfig(prev => {
@@ -1796,6 +1928,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addTeacherObservation,
       updateTeacherObservation,
       deleteTeacherObservation,
+      weeklyPositions,
+      addWeeklyPosition,
+      updateWeeklyPosition,
+      deleteWeeklyPosition,
       updateAcademyConfig,
       environmentMode,
       isHomologationMode: environmentMode === 'HOMOLOG',

@@ -38,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const tabTitles: Record<string, string> = {
     dashboard: 'Painel Principal',
+    'weekly-focus': 'Posições & Foco da Semana',
     attendance: 'Controle de Frequência',
     students: 'Alunos & Graduações',
     classes: 'Turmas & Horários de Treino',

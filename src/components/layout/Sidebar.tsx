@@ -19,7 +19,8 @@ import {
   MessageSquareQuote,
   Shield,
   GraduationCap,
-  Edit3
+  Edit3,
+  Target
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -49,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Painel Geral', icon: LayoutDashboard, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
+    { id: 'weekly-focus', label: 'Foco da Semana', icon: Target, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
     { id: 'students-dashboard', label: 'Dashboard dos Alunos', icon: GraduationCap, roles: ['ADMIN'] },
     { id: 'attendance', label: 'Controle de Frequência', icon: UserCheck, roles: ['ADMIN', 'PROFESSOR', 'ALUNO'] },
     { id: 'academies', label: 'Vincular à Academia', icon: Shield, roles: ['PROFESSOR', 'ALUNO'] },
