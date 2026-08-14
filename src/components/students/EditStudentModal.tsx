@@ -52,6 +52,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const [reqNotes, setReqNotes] = useState<string>('');
   const [reqSuccess, setReqSuccess] = useState<string | null>(null);
   const [reqError, setReqError] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const isStudentUser = currentUser?.role === 'ALUNO';
 
@@ -90,8 +91,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const pendingRequest = beltRequests.find(
     r => r.studentId === student.id && r.status === 'PENDING'
   );
-
-  const [isCompressing, setIsCompressing] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
