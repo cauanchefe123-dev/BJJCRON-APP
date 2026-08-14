@@ -22,6 +22,7 @@ import { GraduationModal } from './components/students/GraduationModal';
 
 import { AttendanceManager } from './components/attendance/AttendanceManager';
 import { QRCodeCheckinModal } from './components/attendance/QRCodeCheckinModal';
+import { DailyAttendanceModal } from './components/attendance/DailyAttendanceModal';
 
 import { ClassManager } from './components/classes/ClassManager';
 import { TeacherManager } from './components/teachers/TeacherManager';
@@ -56,6 +57,7 @@ function MainApp() {
   // Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isQuickCheckinOpen, setIsQuickCheckinOpen] = useState<boolean>(false);
+  const [isDailyAttendanceOpen, setIsDailyAttendanceOpen] = useState<boolean>(false);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState<boolean>(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState<boolean>(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -106,6 +108,7 @@ function MainApp() {
             activeTab={activeTab}
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onOpenQuickScan={() => setIsQuickCheckinOpen(true)}
+            onOpenDailyAttendance={() => setIsDailyAttendanceOpen(true)}
             onOpenAuthModal={() => setIsAuthModalOpen(true)}
             isNotifOpen={isNotifOpen}
             setIsNotifOpen={setIsNotifOpen}
@@ -120,6 +123,7 @@ function MainApp() {
                     <AdminDashboard
                       onNavigate={setActiveTab}
                       onOpenCheckin={() => setIsQuickCheckinOpen(true)}
+                      onOpenDailyAttendance={() => setIsDailyAttendanceOpen(true)}
                     />
                   ) : currentUser.role === 'PROFESSOR' ? (
                     <TeacherDashboard
@@ -213,6 +217,11 @@ function MainApp() {
       <QRCodeCheckinModal
         isOpen={isQuickCheckinOpen}
         onClose={() => setIsQuickCheckinOpen(false)}
+      />
+
+      <DailyAttendanceModal
+        isOpen={isDailyAttendanceOpen}
+        onClose={() => setIsDailyAttendanceOpen(false)}
       />
 
       <AddStudentModal

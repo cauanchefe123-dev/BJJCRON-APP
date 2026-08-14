@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Bell, ShieldCheck, QrCode, Search, LogIn, UserCheck } from 'lucide-react';
+import { Menu, Bell, ShieldCheck, QrCode, Search, LogIn, UserCheck, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { DEFAULT_BLACK_GI_AVATAR, getUserAvatar, resolveStudentForUser } from '../../constants/avatar';
@@ -9,6 +9,7 @@ interface NavbarProps {
   activeTab: string;
   onOpenSidebar: () => void;
   onOpenQuickScan?: () => void;
+  onOpenDailyAttendance?: () => void;
   onOpenAuthModal?: () => void;
   isNotifOpen?: boolean;
   setIsNotifOpen?: (open: boolean) => void;
@@ -18,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onOpenSidebar,
   onOpenQuickScan,
+  onOpenDailyAttendance,
   onOpenAuthModal,
   isNotifOpen: externalIsNotifOpen,
   setIsNotifOpen: externalSetIsNotifOpen,
@@ -80,6 +82,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Daily Attendance Modal Button */}
+          {onOpenDailyAttendance && (
+            <button
+              onClick={onOpenDailyAttendance}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-amber-400 font-bold text-xs border border-slate-700/60 transition-all active:scale-95 cursor-pointer"
+              title="Ver Presenças do Dia"
+            >
+              <Calendar className="w-4 h-4 text-amber-400" />
+              <span className="hidden md:inline">Quem Treinou Hoje</span>
+            </button>
+          )}
+
           {/* Quick Checkin Button for Professor/Admin */}
           {(currentUser?.role === 'PROFESSOR' || currentUser?.role === 'ADMIN') && onOpenQuickScan && (
             <>

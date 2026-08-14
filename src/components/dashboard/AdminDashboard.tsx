@@ -8,9 +8,10 @@ import { getStudentGraduationTarget, isStudentEligibleForGraduation } from '../.
 interface AdminDashboardProps {
   onNavigate: (tab: string) => void;
   onOpenCheckin: () => void;
+  onOpenDailyAttendance?: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenCheckin }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOpenCheckin, onOpenDailyAttendance }) => {
   const { students, payments, attendances, academyConfig } = useData();
 
   const totalActiveStudents = students.filter(s => s.active).length;
@@ -94,10 +95,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
         </div>
 
         {/* Frequência Hoje */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-white space-y-2">
+        <div
+          onClick={() => onOpenDailyAttendance ? onOpenDailyAttendance() : onNavigate('attendance')}
+          className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-5 text-white space-y-2 cursor-pointer transition-all hover:scale-[1.01] group shadow-md"
+          title="Clique para ver quem marcou presença hoje"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">Treinos Hoje</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-400 group-hover:text-amber-400 transition-colors">Treinos Hoje</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 group-hover:bg-amber-500/20 group-hover:text-amber-400 flex items-center justify-center transition-colors">
               <QrCode className="w-4 h-4" />
             </div>
           </div>
@@ -105,9 +110,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onOp
             <span className="text-3xl font-black text-slate-100">{todayAttendances.length}</span>
             <span className="text-xs text-slate-400">presenças</span>
           </div>
-          <p className="text-[11px] text-blue-400 font-medium">
-            Aulas do dia em andamento
-          </p>
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[11px] text-blue-400 font-medium group-hover:text-amber-400 transition-colors">
+              Aulas do dia em andamento
+            </p>
+            <span className="text-[10px] text-amber-400 font-bold group-hover:underline">Ver Lista →</span>
+          </div>
         </div>
 
         {/* Aptos para Graduação */}
