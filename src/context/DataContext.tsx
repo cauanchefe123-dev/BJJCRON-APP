@@ -989,7 +989,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (updates.name) usersList[userIdx].name = updates.name;
             if (updates.email) usersList[userIdx].email = updates.email.trim().toLowerCase();
             if (updates.phone) usersList[userIdx].phone = updates.phone;
-            if (updates.photoUrl) usersList[userIdx].avatarUrl = updates.photoUrl;
+            if (updates.photoUrl !== undefined) usersList[userIdx].avatarUrl = updates.photoUrl;
             if (updates.approvalStatus) usersList[userIdx].approvalStatus = updates.approvalStatus;
             localStorage.setItem('bjjcron_users', JSON.stringify(usersList));
             saveToFirestore('users', usersList[userIdx]);
@@ -1008,7 +1008,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (updates.name) curr.name = updates.name;
             if (updates.email) curr.email = updates.email.trim().toLowerCase();
             if (updates.phone) curr.phone = updates.phone;
-            if (updates.photoUrl) curr.avatarUrl = updates.photoUrl;
+            if (updates.photoUrl !== undefined) curr.avatarUrl = updates.photoUrl;
             localStorage.setItem('bjjcron_current_user', JSON.stringify(curr));
           }
         }

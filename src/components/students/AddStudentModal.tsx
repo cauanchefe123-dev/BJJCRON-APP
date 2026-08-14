@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { BeltType, AgeCategory, WeightCategory } from '../../types';
 import { DEFAULT_BLACK_GI_AVATAR, getStudentAvatar, getGiAvatarForBelt } from '../../constants/avatar';
+import { compressImage } from '../../utils/imageCompressor';
 import { X, UserPlus, Check, Upload, Clock } from 'lucide-react';
 import { getTrainingTimeText } from '../../utils/trainingTime';
 
@@ -85,14 +86,15 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
     onClose();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 350, 350, 0.8);
+        setFormData(prev => ({ ...prev, photoUrl: compressed }));
+      } catch (err) {
+        console.error('Erro ao comprimir foto:', err);
+      }
     }
   };
 

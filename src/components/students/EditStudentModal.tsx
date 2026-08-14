@@ -3,6 +3,7 @@ import { Student, BeltType, AgeCategory, WeightCategory } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { DEFAULT_BLACK_GI_AVATAR, getStudentAvatar, getGiAvatarForBelt } from '../../constants/avatar';
+import { compressImage } from '../../utils/imageCompressor';
 import { BeltBadge } from '../belts/BeltBadge';
 import { getTrainingTimeText } from '../../utils/trainingTime';
 import {
@@ -90,14 +91,20 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     r => r.studentId === student.id && r.status === 'PENDING'
   );
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      setIsCompressing(true);
+      try {
+        const compressed = await compressImage(file, 350, 350, 0.8);
+        setFormData(prev => ({ ...prev, photoUrl: compressed }));
+      } catch (err) {
+        console.error('Erro ao processar foto:', err);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -116,12 +123,24 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student.id) return;
 
+    let finalPhotoUrl = formData.photoUrl || '';
+    if (finalPhotoUrl.startsWith('data:image/') && finalPhotoUrl.length > 50000) {
+      setIsCompressing(true);
+      try {
+        finalPhotoUrl = await compressImage(finalPhotoUrl, 350, 350, 0.8);
+      } catch (err) {
+        console.warn('Falha na compressao final:', err);
+      } finally {
+        setIsCompressing(false);
+      }
+    }
+
     // If user is ALUNO, do not overwrite belt or stripes directly from profile edit
-    const dataToSave = { ...formData };
+    const dataToSave = { ...formData, photoUrl: finalPhotoUrl };
     if (isStudentUser) {
       delete dataToSave.belt;
       delete dataToSave.stripes;
