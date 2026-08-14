@@ -80,24 +80,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 print:hidden ${
+        className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-slate-900/95 backdrop-blur-md border-r border-slate-800/80 text-slate-200 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 print:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="p-4 flex-1 overflow-y-auto">
           {/* Logo Brand */}
-          <div className="flex items-center justify-between px-2 py-3 mb-6 border-b border-slate-800">
+          <div className="flex items-center justify-between px-2 py-3 mb-5 border-b border-slate-800/80">
             <div className="flex items-center gap-3 min-w-0">
               <img
                 src={academyConfig.logoUrl || '/logo.svg'}
                 alt={academyConfig.fantasyName || academyConfig.name || 'BJJCRON'}
-                className="w-10 h-10 rounded-xl object-contain border border-amber-500/50 shadow-md bg-slate-950 p-0.5 shrink-0"
+                className="w-10 h-10 rounded-xl object-contain border border-amber-500/40 shadow-md shadow-amber-500/10 bg-slate-950 p-1 shrink-0"
               />
               <div className="min-w-0 flex-1">
                 <h1 className="font-black text-sm tracking-wider text-white truncate">
                   {academyConfig.fantasyName || 'BJJCRON'}
                 </h1>
-                <p className="text-[10px] text-amber-400 tracking-tight font-bold uppercase truncate">
+                <p className="text-[10px] text-amber-400 tracking-wider font-extrabold uppercase truncate">
                   {academyConfig.name || 'Jiu-Jitsu Academy'}
                 </p>
               </div>
@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 lg:hidden shrink-0"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 lg:hidden shrink-0"
               title="Fechar menu"
             >
               ✕
@@ -113,20 +113,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* User Badge Info */}
-          <div className="mb-6 p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="mb-5 p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between gap-2 shadow-inner">
+            <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src={userAvatar}
                 alt={currentUser.name}
-                className="w-10 h-10 rounded-full object-cover border border-amber-400/50 bg-slate-900 shrink-0"
+                className="w-9 h-9 rounded-full object-cover border border-amber-400/60 bg-slate-900 shrink-0 shadow-xs"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-100 truncate">{currentUser.name}</p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase ${
-                    currentUser.role === 'ADMIN' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                    currentUser.role === 'PROFESSOR' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-tight ${
+                    currentUser.role === 'ADMIN' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+                    currentUser.role === 'PROFESSOR' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' :
+                    'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                   }`}>
                     {currentUser.role === 'ADMIN' ? 'Administrador' : currentUser.role === 'PROFESSOR' ? 'Professor' : 'Aluno'}
                   </span>
@@ -137,8 +137,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {onOpenEditProfile && (
               <button
                 onClick={onOpenEditProfile}
-                className="p-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/60 text-blue-300 border border-blue-500/40 transition-all text-[11px] font-bold shrink-0 flex items-center gap-1 active:scale-95"
-                title="Editar Cadastro / Perfil"
+                className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 border border-blue-500/30 transition-all text-[11px] font-bold shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer"
+                title="Editar Perfil"
               >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
@@ -147,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Nav List */}
           <nav className="space-y-1">
-            <p className="px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2">
+            <p className="px-3 text-[10px] font-extrabold uppercase text-slate-500 tracking-wider mb-2">
               Navegação
             </p>
             {filteredItems.map(item => {
@@ -160,14 +160,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setActiveTab(item.id);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/10'
-                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20 translate-x-0.5'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
@@ -175,10 +175,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40">
+        <div className="p-4 border-t border-slate-800/80 bg-slate-950/60">
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 border border-rose-900/30 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-all active:scale-98 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Sair do Sistema
