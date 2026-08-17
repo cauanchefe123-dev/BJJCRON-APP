@@ -18,6 +18,9 @@ export const BELT_NAMES: Record<BeltType, string> = {
   ROXA: 'Faixa Roxa',
   MARROM: 'Faixa Marrom',
   PRETA: 'Faixa Preta',
+  'VERMELHA E PRETA': 'Faixa Coral (7º Grau)',
+  'VERMELHA E BRANCA': 'Faixa Coral (8º Grau)',
+  'VERMELHA': 'Faixa Vermelha (9º/10º Grau)',
 };
 
 export const BELT_COLORS: Record<BeltType, { bg: string; text: string; border: string; barBg: string; barBorder: string }> = {
@@ -30,6 +33,9 @@ export const BELT_COLORS: Record<BeltType, { bg: string; text: string; border: s
   ROXA: { bg: 'bg-purple-700', text: 'text-purple-50', border: 'border-purple-800', barBg: 'bg-black', barBorder: 'border-purple-950' },
   MARROM: { bg: 'bg-amber-900', text: 'text-amber-50', border: 'border-amber-950', barBg: 'bg-black', barBorder: 'border-black' },
   PRETA: { bg: 'bg-neutral-900', text: 'text-amber-400', border: 'border-neutral-950', barBg: 'bg-red-600', barBorder: 'border-red-800' },
+  'VERMELHA E PRETA': { bg: 'bg-red-700', text: 'text-white', border: 'border-red-900', barBg: 'bg-black', barBorder: 'border-black' },
+  'VERMELHA E BRANCA': { bg: 'bg-red-700', text: 'text-white', border: 'border-red-900', barBg: 'bg-white', barBorder: 'border-slate-300' },
+  'VERMELHA': { bg: 'bg-red-600', text: 'text-amber-300', border: 'border-red-800', barBg: 'bg-amber-400', barBorder: 'border-amber-600' },
 };
 
 export const BeltBadge: React.FC<BeltBadgeProps> = ({

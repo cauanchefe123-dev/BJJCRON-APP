@@ -29,33 +29,48 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
   const [promotedAt, setPromotedAt] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>('Outorgado por mérito e dedicação nos treinos.');
 
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const pendingRequests = beltRequests.filter(r => r.status === 'PENDING');
 
   useEffect(() => {
+    if (!isOpen) {
+      setIsSuccess(false);
+      return;
+    }
+
     if (studentToGraduate) {
       setSelectedStudentId(studentToGraduate.id);
       setNewBelt(studentToGraduate.belt);
       setNewStripes(studentToGraduate.stripes < 4 ? studentToGraduate.stripes + 1 : 0);
+      setActiveTab('PROMOTE');
     } else if (students.length > 0) {
-      setSelectedStudentId(students[0].id);
-      setNewBelt(students[0].belt);
-      setNewStripes(students[0].stripes);
+      const current = students.find(s => s.id === selectedStudentId) || students[0];
+      setSelectedStudentId(current.id);
+      setNewBelt(current.belt);
+      setNewStripes(current.stripes < 4 ? current.stripes + 1 : 0);
+      if (pendingRequests.length > 0 && !selectedStudentId) {
+        setActiveTab('REQUESTS');
+      } else {
+        setActiveTab('PROMOTE');
+      }
     }
-    if (pendingRequests.length > 0 && !studentToGraduate) {
-      setActiveTab('REQUESTS');
-    }
-  }, [studentToGraduate, students]);
+  }, [isOpen, studentToGraduate?.id]);
 
   if (!isOpen) return null;
 
-  const currentStudent = students.find(s => s.id === selectedStudentId);
+  const currentStudent = students.find(s => s.id === selectedStudentId) || studentToGraduate || students[0];
 
   const handlePromote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentStudent) return;
 
     promoteStudent(currentStudent.id, newBelt, newStripes, promotedBy, notes, promotedAt);
-    onClose();
+    setIsSuccess(true);
+    setTimeout(() => {
+      setIsSuccess(false);
+      onClose();
+    }, 900);
   };
 
   return (
@@ -173,28 +188,38 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
                   onChange={e => setNewBelt(e.target.value as BeltType)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
                 >
-                  <option value="BRANCA">Faixa Branca</option>
-                  <option value="AZUL">Faixa Azul</option>
-                  <option value="ROXA">Faixa Roxa</option>
-                  <option value="MARROM">Faixa Marrom</option>
-                  <option value="PRETA">Faixa Preta</option>
-                  <option value="CINZA">Faixa Cinza (Kids)</option>
-                  <option value="AMARELA">Faixa Amarela (Kids)</option>
-                  <option value="LARANJA">Faixa Laranja (Kids)</option>
-                  <option value="VERDE">Faixa Verde (Kids)</option>
+                  <optgroup label="Adulto">
+                    <option value="BRANCA">Faixa Branca</option>
+                    <option value="AZUL">Faixa Azul</option>
+                    <option value="ROXA">Faixa Roxa</option>
+                    <option value="MARROM">Faixa Marrom</option>
+                    <option value="PRETA">Faixa Preta</option>
+                    <option value="VERMELHA E PRETA">Faixa Coral (Vermelha e Preta)</option>
+                    <option value="VERMELHA E BRANCA">Faixa Coral (Vermelha e Branca)</option>
+                    <option value="VERMELHA">Faixa Vermelha (Grande Mestre)</option>
+                  </optgroup>
+                  <optgroup label="Infantil / Kids">
+                    <option value="CINZA">Faixa Cinza (Kids)</option>
+                    <option value="AMARELA">Faixa Amarela (Kids)</option>
+                    <option value="LARANJA">Faixa Laranja (Kids)</option>
+                    <option value="VERDE">Faixa Verde (Kids)</option>
+                  </optgroup>
                 </select>
               </div>
 
               <div>
-                <label className="text-slate-300 font-bold block mb-1">Novos Graus (0-4):</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={4}
+                <label className="text-slate-300 font-bold block mb-1">Novos Graus (0 a 4):</label>
+                <select
                   value={newStripes}
-                  onChange={e => setNewStripes(parseInt(e.target.value) || 0)}
+                  onChange={e => setNewStripes(Number(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
-                />
+                >
+                  <option value={0}>Sem Grau (Faixa Lisa)</option>
+                  <option value={1}>1º Grau</option>
+                  <option value={2}>2º Grau</option>
+                  <option value={3}>3º Grau</option>
+                  <option value={4}>4º Grau</option>
+                </select>
               </div>
             </div>
 
@@ -203,6 +228,13 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
               <span className="text-[10px] font-bold text-slate-300 uppercase">Resultado da Promoção:</span>
               <BeltBadge belt={newBelt} stripes={newStripes} size="md" />
             </div>
+
+            {isSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/50 flex items-center gap-2 text-emerald-300 text-xs font-bold animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                Graduação registrada com sucesso! Atualizando atleta...
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

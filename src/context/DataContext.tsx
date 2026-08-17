@@ -578,17 +578,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const isApproved = cloudSt.approvalStatus === 'APPROVED' || (localSt && localSt.approvalStatus === 'APPROVED') || (!cloudSt.approvalStatus && (!localSt || !localSt.approvalStatus));
           const bestApproval = isApproved ? 'APPROVED' : (cloudSt.approvalStatus || (localSt && localSt.approvalStatus) || 'APPROVED');
 
-          // Rank comparison: NEVER downgrade belt/stripes
-          const localWeight = getBeltWeight(localSt?.belt, localSt?.stripes);
-          const cloudWeight = getBeltWeight(cloudSt?.belt, cloudSt?.stripes);
-
+          // Rank resolution: use latest cloud data or local data
           let bestBelt = cloudSt.belt || localSt?.belt || 'BRANCA';
-          let bestStripes = cloudSt.stripes !== undefined ? cloudSt.stripes : (localSt?.stripes || 0);
-
-          if (localSt && localWeight > cloudWeight) {
-            bestBelt = localSt.belt;
-            bestStripes = localSt.stripes || 0;
-          }
+          let bestStripes = cloudSt.stripes !== undefined ? cloudSt.stripes : (localSt?.stripes !== undefined ? localSt.stripes : 0);
 
           const mergedItem: Student = {
             ...(localSt || {}),
@@ -608,11 +600,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
 
           if (existingMergedIdx !== -1) {
-            const currentMergedWeight = getBeltWeight(merged[existingMergedIdx].belt, merged[existingMergedIdx].stripes);
-            const itemWeight = getBeltWeight(mergedItem.belt, mergedItem.stripes);
-            if (itemWeight >= currentMergedWeight) {
-              merged[existingMergedIdx] = mergedItem;
-            }
+            merged[existingMergedIdx] = mergedItem;
           } else {
             merged.push(mergedItem);
           }

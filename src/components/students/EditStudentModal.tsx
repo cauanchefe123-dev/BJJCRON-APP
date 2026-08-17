@@ -138,15 +138,11 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       }
     }
 
-    // If user is ALUNO, do not overwrite belt or stripes directly from profile edit
+    // Save full data including belt and stripes
     const dataToSave = { ...formData, photoUrl: finalPhotoUrl };
-    if (isStudentUser) {
-      delete dataToSave.belt;
-      delete dataToSave.stripes;
-    }
 
     updateStudent(student.id, dataToSave);
-    setSuccessMsg('Cadastro atualizado com sucesso!');
+    setSuccessMsg('Cadastro e graduação atualizados com sucesso!');
     setTimeout(() => {
       setSuccessMsg(null);
       onClose();
@@ -406,247 +402,154 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
           </div>
 
           {/* Belt & Categories Section */}
-          <div className="space-y-3 pt-2 border-t border-slate-800">
-            {isStudentUser ? (
-              /* STUDENT VIEW: Read-only current belt + Request Belt Change form */
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Sua Faixa Atual:</span>
-                    <h4 className="font-extrabold text-sm text-slate-100">{formData.name}</h4>
-                    <p className="text-[10px] text-amber-400 font-semibold mt-0.5">
-                      Para mudar de faixa ou graus, envie uma solicitação para aprovação do Mestre.
-                    </p>
-                  </div>
-                  <BeltBadge belt={student.belt} stripes={student.stripes} size="md" />
+          <div className="space-y-4 pt-2 border-t border-slate-800">
+            {pendingRequest && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-amber-400 flex items-center gap-1.5 text-xs">
+                    <Award className="w-4 h-4" />
+                    Solicitação de Troca de Faixa Pendente
+                  </span>
+                  <span className="text-[10px] text-amber-300 font-bold">{pendingRequest.requestDate}</span>
                 </div>
-
-                {pendingRequest ? (
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-amber-400 flex items-center gap-1.5 text-xs">
-                        <Clock className="w-4 h-4" />
-                        Solicitação de Troca de Faixa em Análise
-                      </span>
-                      <span className="text-[10px] text-amber-300 font-semibold">Data: {pendingRequest.requestDate}</span>
-                    </div>
-                    <p className="text-xs text-slate-200">
-                      Você solicitou a alteração para: <strong className="text-amber-300 font-black">{pendingRequest.requestedBelt} ({pendingRequest.requestedStripes}º Grau)</strong>.
-                    </p>
-                    {pendingRequest.notes && (
-                      <p className="text-[11px] text-slate-300 italic bg-slate-950/80 p-2 rounded-xl border border-slate-800">
-                        "{pendingRequest.notes}"
-                      </p>
-                    )}
-                    <p className="text-[10px] text-slate-400">Aguardando avaliação e assinatura do Professor no tatame.</p>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <h4 className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
-                        <Award className="w-4 h-4" />
-                        Solicitar Troca de Faixa / Graus ao Professor
-                      </h4>
-                      <span className="text-[10px] text-slate-400">Sua alteração requer aprovação do Mestre</span>
-                    </div>
-
-                    {reqSuccess && (
-                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        {reqSuccess}
-                      </div>
-                    )}
-                    {reqError && (
-                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-rose-400" />
-                        {reqError}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-slate-300 font-bold block mb-1">Nova Faixa Solicitada</label>
-                        <select
-                          value={reqBelt}
-                          onChange={e => setReqBelt(e.target.value as BeltType)}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-amber-500"
-                        >
-                          <option value="BRANCA">Faixa Branca</option>
-                          <option value="CINZA">Faixa Cinza</option>
-                          <option value="AMARELA">Faixa Amarela</option>
-                          <option value="VERDE">Faixa Verde</option>
-                          <option value="AZUL">Faixa Azul</option>
-                          <option value="ROXA">Faixa Roxa</option>
-                          <option value="MARROM">Faixa Marrom</option>
-                          <option value="PRETA">Faixa Preta</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-slate-300 font-bold block mb-1">Novos Graus (0-4)</label>
-                        <select
-                          value={reqStripes}
-                          onChange={e => setReqStripes(Number(e.target.value))}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-amber-500"
-                        >
-                          <option value={0}>0 Graus</option>
-                          <option value={1}>1 Grau</option>
-                          <option value={2}>2 Graus</option>
-                          <option value={3}>3 Graus</option>
-                          <option value={4}>4 Graus</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-300 font-bold block mb-1">Mensagem / Observação para o Professor</label>
-                      <textarea
-                        rows={2}
-                        placeholder="Ex: Completei o tempo mínimo e quantidade de treinos exigidos para a graduação..."
-                        value={reqNotes}
-                        onChange={e => setReqNotes(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 text-xs resize-none"
-                      />
-                    </div>
-
+                <p className="text-xs text-slate-200">
+                  Solicitação de alteração para: <strong className="text-amber-300 font-black">{pendingRequest.requestedBelt} ({pendingRequest.requestedStripes}º Grau)</strong>
+                </p>
+                {pendingRequest.notes && (
+                  <p className="text-[11px] text-slate-300 italic bg-slate-950/90 p-2.5 rounded-xl border border-slate-800">
+                    "{pendingRequest.notes}"
+                  </p>
+                )}
+                {!isStudentUser && (
+                  <div className="flex items-center gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={handleSendBeltRequest}
-                      className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold flex items-center justify-center gap-2 shadow-md transition-all text-xs"
+                      onClick={() => approveBeltChange(pendingRequest.id, currentUser?.name || 'Professor')}
+                      className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all"
                     >
-                      <Send className="w-4 h-4" />
-                      Enviar Solicitação de Troca ao Professor
+                      <Check className="w-4 h-4" />
+                      Aprovar Troca de Faixa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => rejectBeltChange(pendingRequest.id, currentUser?.name || 'Professor')}
+                      className="py-2.5 px-4 rounded-xl bg-rose-600/80 hover:bg-rose-500 text-white font-extrabold text-xs transition-all"
+                    >
+                      Rejeitar
                     </button>
                   </div>
                 )}
-
-                {/* Weight Category */}
-                <div>
-                  <label className="text-slate-300 font-bold block mb-1">Categoria de Peso</label>
-                  <select
-                    value={formData.weightCategory || 'MÉDIO'}
-                    onChange={e => setFormData({ ...formData, weightCategory: e.target.value as WeightCategory })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
-                  >
-                    <option value="GALO">Galo</option>
-                    <option value="PLUMA">Pluma</option>
-                    <option value="PENA">Pena</option>
-                    <option value="LEVE">Leve</option>
-                    <option value="MÉDIO">Médio</option>
-                    <option value="MEIO-PESADO">Meio-Pesado</option>
-                    <option value="PESADO">Pesado</option>
-                    <option value="SUPER-PESADO">Super-Pesado</option>
-                    <option value="PESADÍSSIMO">Pesadíssimo</option>
-                    <option value="ABSOLUTO">Absoluto</option>
-                  </select>
-                </div>
               </div>
-            ) : (
-              /* PROFESSOR / ADMIN VIEW: Can review pending request + direct edit belt */
-              <div className="space-y-4">
-                {pendingRequest && (
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/50 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-amber-400 flex items-center gap-1.5 text-xs">
-                        <Award className="w-4 h-4" />
-                        Solicitação de Troca de Faixa Pendente do Aluno
-                      </span>
-                      <span className="text-[10px] text-amber-300 font-bold">{pendingRequest.requestDate}</span>
-                    </div>
-                    <p className="text-xs text-slate-200">
-                      O aluno solicitou alteração de faixa para: <strong className="text-amber-300 font-black">{pendingRequest.requestedBelt} ({pendingRequest.requestedStripes}º Grau)</strong>
-                    </p>
-                    {pendingRequest.notes && (
-                      <p className="text-[11px] text-slate-300 italic bg-slate-950/90 p-2.5 rounded-xl border border-slate-800">
-                        "{pendingRequest.notes}"
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => approveBeltChange(pendingRequest.id, currentUser?.name || 'Professor')}
-                        className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all"
-                      >
-                        <Check className="w-4 h-4" />
-                        Aprovar Troca de Faixa
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => rejectBeltChange(pendingRequest.id, currentUser?.name || 'Professor')}
-                        className="py-2.5 px-4 rounded-xl bg-rose-600/80 hover:bg-rose-500 text-white font-extrabold text-xs transition-all"
-                      >
-                        Rejeitar
-                      </button>
-                    </div>
-                  </div>
-                )}
+            )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-slate-300 font-bold block mb-1">Faixa Atual (Professor)</label>
-                    <select
-                      value={formData.belt || 'BRANCA'}
-                      onChange={e => setFormData({ ...formData, belt: e.target.value as BeltType })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
-                    >
+            {/* Direct Belt & Graduation Settings */}
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div>
+                  <h4 className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
+                    <Award className="w-4 h-4" />
+                    Graduação & Faixa do Atleta
+                  </h4>
+                  <p className="text-[10px] text-slate-400">Ajuste direto da faixa e graus do aluno</p>
+                </div>
+                <BeltBadge belt={formData.belt || 'BRANCA'} stripes={formData.stripes || 0} size="md" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">Faixa</label>
+                  <select
+                    value={formData.belt || 'BRANCA'}
+                    onChange={e => setFormData({ ...formData, belt: e.target.value as BeltType })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                  >
+                    <optgroup label="Adulto">
                       <option value="BRANCA">Faixa Branca</option>
-                      <option value="CINZA">Faixa Cinza</option>
-                      <option value="AMARELA">Faixa Amarela</option>
-                      <option value="VERDE">Faixa Verde</option>
                       <option value="AZUL">Faixa Azul</option>
                       <option value="ROXA">Faixa Roxa</option>
                       <option value="MARROM">Faixa Marrom</option>
                       <option value="PRETA">Faixa Preta</option>
-                    </select>
-                  </div>
+                      <option value="VERMELHA E PRETA">Faixa Coral (Vermelha e Preta)</option>
+                      <option value="VERMELHA E BRANCA">Faixa Coral (Vermelha e Branca)</option>
+                      <option value="VERMELHA">Faixa Vermelha (Grande Mestre)</option>
+                    </optgroup>
+                    <optgroup label="Infantil / Kids">
+                      <option value="CINZA">Faixa Cinza</option>
+                      <option value="AMARELA">Faixa Amarela</option>
+                      <option value="LARANJA">Faixa Laranja</option>
+                      <option value="VERDE">Faixa Verde</option>
+                    </optgroup>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="text-slate-300 font-bold block mb-1">Graus na Faixa</label>
-                    <select
-                      value={formData.stripes ?? 0}
-                      onChange={e => setFormData({ ...formData, stripes: Number(e.target.value) })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
-                    >
-                      <option value={0}>0 Graus</option>
-                      <option value={1}>1 Grau</option>
-                      <option value={2}>2 Graus</option>
-                      <option value={3}>3 Graus</option>
-                      <option value={4}>4 Graus</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">Graus na Faixa (0 a 4)</label>
+                  <select
+                    value={formData.stripes ?? 0}
+                    onChange={e => setFormData({ ...formData, stripes: Number(e.target.value) })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                  >
+                    <option value={0}>0 Graus (Faixa Lisa)</option>
+                    <option value={1}>1º Grau</option>
+                    <option value={2}>2º Grau</option>
+                    <option value={3}>3º Grau</option>
+                    <option value={4}>4º Grau</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação</label>
-                    <input
-                      type="date"
-                      value={formData.lastGraduationDate || new Date().toISOString().split('T')[0]}
-                      onChange={e => setFormData({ ...formData, lastGraduationDate: e.target.value })}
-                      className="w-full bg-slate-950 border border-amber-500/50 rounded-xl p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-300 font-bold block mb-1">Categoria Peso</label>
-                    <select
-                      value={formData.weightCategory || 'MÉDIO'}
-                      onChange={e => setFormData({ ...formData, weightCategory: e.target.value as WeightCategory })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
-                    >
-                      <option value="GALO">Galo</option>
-                      <option value="PLUMA">Pluma</option>
-                      <option value="PENA">Pena</option>
-                      <option value="LEVE">Leve</option>
-                      <option value="MÉDIO">Médio</option>
-                      <option value="MEIO-PESADO">Meio-Pesado</option>
-                      <option value="PESADO">Pesado</option>
-                      <option value="SUPER-PESADO">Super-Pesado</option>
-                      <option value="PESADÍSSIMO">Pesadíssimo</option>
-                      <option value="ABSOLUTO">Absoluto</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação</label>
+                  <input
+                    type="date"
+                    value={formData.lastGraduationDate || new Date().toISOString().split('T')[0]}
+                    onChange={e => setFormData({ ...formData, lastGraduationDate: e.target.value })}
+                    className="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                  />
                 </div>
               </div>
-            )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Categoria de Peso</label>
+                <select
+                  value={formData.weightCategory || 'MÉDIO'}
+                  onChange={e => setFormData({ ...formData, weightCategory: e.target.value as WeightCategory })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                >
+                  <option value="GALO">Galo</option>
+                  <option value="PLUMA">Pluma</option>
+                  <option value="PENA">Pena</option>
+                  <option value="LEVE">Leve</option>
+                  <option value="MÉDIO">Médio</option>
+                  <option value="MEIO-PESADO">Meio-Pesado</option>
+                  <option value="PESADO">Pesado</option>
+                  <option value="SUPER-PESADO">Super-Pesado</option>
+                  <option value="PESADÍSSIMO">Pesadíssimo</option>
+                  <option value="ABSOLUTO">Absoluto</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Categoria de Idade</label>
+                <select
+                  value={formData.ageCategory || 'ADULTO'}
+                  onChange={e => setFormData({ ...formData, ageCategory: e.target.value as AgeCategory })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none"
+                >
+                  <option value="PRÉ-MIRIM">Pré-Mirim</option>
+                  <option value="MIRIM">Mirim</option>
+                  <option value="INFANTIL">Infantil</option>
+                  <option value="INFANTO-JUVENIL">Infanto-Juvenil</option>
+                  <option value="JUVENIL">Juvenil</option>
+                  <option value="ADULTO">Adulto</option>
+                  <option value="MASTER 1">Master 1</option>
+                  <option value="MASTER 2">Master 2</option>
+                  <option value="MASTER 3">Master 3</option>
+                  <option value="MASTER 4+">Master 4+</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Plan & Payment Details (Admin/Professor only) */}

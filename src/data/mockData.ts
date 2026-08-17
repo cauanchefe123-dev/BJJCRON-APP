@@ -81,7 +81,10 @@ export const INITIAL_ACADEMY_CONFIG: AcademyConfig = {
     AZUL: { classesPerStripe: 40, monthsForNextBelt: 18 },
     ROXA: { classesPerStripe: 50, monthsForNextBelt: 18 },
     MARROM: { classesPerStripe: 60, monthsForNextBelt: 12 },
-    PRETA: { classesPerStripe: 100, monthsForNextBelt: 36 }
+    PRETA: { classesPerStripe: 100, monthsForNextBelt: 36 },
+    'VERMELHA E PRETA': { classesPerStripe: 150, monthsForNextBelt: 60 },
+    'VERMELHA E BRANCA': { classesPerStripe: 200, monthsForNextBelt: 84 },
+    'VERMELHA': { classesPerStripe: 300, monthsForNextBelt: 120 }
   },
   supabaseConfig: {
     url: '',

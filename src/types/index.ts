@@ -21,7 +21,10 @@ export type BeltType =
   | 'AZUL' 
   | 'ROXA' 
   | 'MARROM' 
-  | 'PRETA';
+  | 'PRETA'
+  | 'VERMELHA E PRETA'
+  | 'VERMELHA E BRANCA'
+  | 'VERMELHA';
 
 export type PaymentStatus = 'PAGO' | 'PENDENTE' | 'ATRASADO';
 

@@ -10,6 +10,9 @@ export const BELT_AVATAR_COLORS: Record<BeltType, { strap: string; bar: string; 
   ROXA: { strap: '%239333ea', bar: '%2309090b' },
   MARROM: { strap: '%2378350f', bar: '%2309090b' },
   PRETA: { strap: '%2309090b', bar: '%23dc2626' },
+  'VERMELHA E PRETA': { strap: '%23dc2626', bar: '%2309090b' },
+  'VERMELHA E BRANCA': { strap: '%23dc2626', bar: '%23f8fafc' },
+  'VERMELHA': { strap: '%23dc2626', bar: '%23dc2626' },
 };
 
 /**
@@ -18,7 +21,7 @@ export const BELT_AVATAR_COLORS: Record<BeltType, { strap: string; bar: string; 
  */
 export function getGiAvatarForBelt(belt: BeltType = 'BRANCA', stripes: number = 0): string {
   const config = BELT_AVATAR_COLORS[belt] || BELT_AVATAR_COLORS.BRANCA;
-  const numStripes = Math.min(Math.max(stripes || 0, 0), 6);
+  const numStripes = Math.min(Math.max(stripes || 0, 0), 4);
 
   let stripeSvg = '';
   for (let i = 0; i < numStripes; i++) {
