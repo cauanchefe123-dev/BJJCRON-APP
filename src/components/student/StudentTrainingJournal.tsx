@@ -24,6 +24,7 @@ import {
   Award,
   ChevronDown,
   ChevronUp,
+  Users,
   AlertCircle,
   TrendingUp,
   Target
@@ -40,8 +41,20 @@ export const StudentTrainingJournal: React.FC = () => {
   const { currentUser } = useAuth();
   const { students, trainingLogs, addTrainingLog, updateTrainingLog, deleteTrainingLog } = useData();
 
-  const student = resolveStudentForUser(currentUser, students) || students.find(s => s.id === currentUser?.studentId) || students[0];
-  const myLogs = trainingLogs.filter(l => l.studentId === student?.id);
+  const isStudentUser = currentUser?.role === 'ALUNO';
+  const resolvedStudent = resolveStudentForUser(currentUser, students) || (currentUser?.studentId ? students.find(s => s.id === currentUser.studentId) : null);
+
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => {
+    if (isStudentUser) return resolvedStudent?.id || '';
+    return resolvedStudent?.id || (students.length > 0 ? students[0].id : '');
+  });
+
+  const activeStudent = isStudentUser 
+    ? resolvedStudent 
+    : (students.find(s => s.id === selectedStudentId) || resolvedStudent || (students.length > 0 ? students[0] : null));
+
+  const student = activeStudent;
+  const myLogs = activeStudent ? trainingLogs.filter(l => l.studentId === activeStudent.id) : [];
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(true);
@@ -226,7 +239,9 @@ export const StudentTrainingJournal: React.FC = () => {
               Diário de Treinos & Evolução Técnica
             </h2>
             <p className="text-xs text-slate-400 max-w-xl mt-1">
-              Registre suas posições aprendidas, quantidade de rolas, submissões e reflexões de treino para acelerar sua caminhada na arte suave.
+              {isStudentUser
+                ? 'Registre suas posições aprendidas, quantidade de rolas, submissões e reflexões de treino para acelerar sua caminhada na arte suave.'
+                : `Visualizando diário técnico do atleta: ${activeStudent?.name || 'Selecione um aluno abaixo'}`}
             </p>
           </div>
 
@@ -236,7 +251,7 @@ export const StudentTrainingJournal: React.FC = () => {
               if (isFormOpen && editingLogId) resetForm();
               setIsFormOpen(!isFormOpen);
             }}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
           >
             {isFormOpen ? (
               <>
@@ -250,6 +265,27 @@ export const StudentTrainingJournal: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Professor/Admin Athlete Switcher */}
+      {!isStudentUser && students.length > 0 && (
+        <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+            <Users className="w-4 h-4" />
+            <span>Visualizar Diário do Atleta:</span>
+          </div>
+          <select
+            value={activeStudent?.id || ''}
+            onChange={e => setSelectedStudentId(e.target.value)}
+            className="w-full sm:w-auto bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-slate-100 font-bold text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+          >
+            {students.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.belt} - {s.stripes}º Grau)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Athlete Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

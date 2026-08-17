@@ -32,6 +32,7 @@ export const StudentList: React.FC<StudentListProps> = ({
   const [emailStudent, setEmailStudent] = useState<Student | null>(null);
 
   const pendingStudents = students.filter(s => s.approvalStatus === 'PENDING');
+  const canManage = currentUser?.role === 'ADMIN' || currentUser?.role === 'PROFESSOR';
 
   const handleApprove = (student: Student) => {
     approveUser(student.id);
@@ -140,22 +141,26 @@ export const StudentList: React.FC<StudentListProps> = ({
           <p className="text-xs text-slate-400">Total de {students.length} atletas vinculados à academia</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onOpenGraduationModal(students[0])}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs border border-slate-700 transition-all"
-          >
-            <Award className="w-4 h-4" />
-            Graduar Atleta
-          </button>
-          <button
-            onClick={onOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all"
-          >
-            <UserPlus className="w-4 h-4" />
-            Cadastrar Novo Aluno
-          </button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-3">
+            {students.length > 0 && (
+              <button
+                onClick={() => onOpenGraduationModal(students[0])}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs border border-slate-700 transition-all cursor-pointer"
+              >
+                <Award className="w-4 h-4" />
+                Graduar Atleta
+              </button>
+            )}
+            <button
+              onClick={onOpenAddModal}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              Cadastrar Novo Aluno
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filters & Search */}
@@ -313,43 +318,47 @@ export const StudentList: React.FC<StudentListProps> = ({
 
                         <button
                           onClick={() => setEmailStudent(s)}
-                          className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1"
+                          className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                           title="Enviar E-mail para Aluno"
                         >
                           <Mail className="w-3.5 h-3.5" />
                           E-mail
                         </button>
 
-                        <button
-                          onClick={() => onOpenGraduationModal(s)}
-                          className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1"
-                          title="Graduar / Graus"
-                        >
-                          <Award className="w-3.5 h-3.5" />
-                          Graduar
-                        </button>
+                        {canManage && (
+                          <button
+                            onClick={() => onOpenGraduationModal(s)}
+                            className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                            title="Graduar / Graus"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            Graduar
+                          </button>
+                        )}
 
                         {onOpenCardModal && (
                           <button
                             onClick={() => onOpenCardModal(s)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer"
                             title="Carteirinha"
                           >
                             <IdCard className="w-3.5 h-3.5" />
                           </button>
                         )}
 
-                        <button
-                          onClick={() => {
-                            if (confirm(`Deseja remover a matrícula de ${s.name}?`)) {
-                              deleteStudent(s.id);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700"
-                          title="Excluir Aluno"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {canManage && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Deseja remover a matrícula de ${s.name}?`)) {
+                                deleteStudent(s.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 cursor-pointer"
+                            title="Excluir Aluno"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

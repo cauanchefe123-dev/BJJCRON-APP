@@ -138,11 +138,15 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       }
     }
 
-    // Save full data including belt and stripes
-    const dataToSave = { ...formData, photoUrl: finalPhotoUrl };
+    // Save full data; if student user, preserve current belt & stripes so only coach/admin can promote
+    const dataToSave = { 
+      ...formData, 
+      photoUrl: finalPhotoUrl,
+      ...(isStudentUser ? { belt: student.belt, stripes: student.stripes } : {})
+    };
 
     updateStudent(student.id, dataToSave);
-    setSuccessMsg('Cadastro e graduação atualizados com sucesso!');
+    setSuccessMsg('Cadastro atualizado com sucesso!');
     setTimeout(() => {
       setSuccessMsg(null);
       onClose();
@@ -442,72 +446,171 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               </div>
             )}
 
-            {/* Direct Belt & Graduation Settings */}
-            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-                <div>
-                  <h4 className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
-                    <Award className="w-4 h-4" />
-                    Graduação & Faixa do Atleta
-                  </h4>
-                  <p className="text-[10px] text-slate-400">Ajuste direto da faixa e graus do aluno</p>
+            {/* Belt & Graduation Settings */}
+            {isStudentUser ? (
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div>
+                    <h4 className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
+                      <Award className="w-4 h-4" />
+                      Sua Faixa e Graduação Atual
+                    </h4>
+                    <p className="text-[10px] text-slate-400">Graduações são outorgadas exclusivamente pelo Mestre / Professor</p>
+                  </div>
+                  <BeltBadge belt={student.belt} stripes={student.stripes} size="md" />
                 </div>
-                <BeltBadge belt={formData.belt || 'BRANCA'} stripes={formData.stripes || 0} size="md" />
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-slate-300 font-bold block mb-1">Faixa</label>
-                  <select
-                    value={formData.belt || 'BRANCA'}
-                    onChange={e => setFormData({ ...formData, belt: e.target.value as BeltType })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs text-slate-300">
+                  <p className="font-semibold text-slate-200">
+                    Faixa atual: <strong className="text-amber-400 font-extrabold">{student.belt} ({student.stripes}º Grau)</strong>
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Para solicitar uma atualização de grau ou faixa ao professor, use a seção de solicitação abaixo.
+                  </p>
+                </div>
+
+                {/* Student Request Form */}
+                <div className="pt-2 border-t border-slate-800 space-y-3">
+                  <h5 className="font-extrabold text-xs text-slate-200 flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-amber-400" />
+                    Solicitar Troca de Faixa / Grau ao Professor
+                  </h5>
+
+                  {reqSuccess && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-bold">
+                      {reqSuccess}
+                    </div>
+                  )}
+
+                  {reqError && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-bold">
+                      {reqError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] text-slate-300 font-bold block mb-1">Faixa Pretendida</label>
+                      <select
+                        value={reqBelt}
+                        onChange={e => setReqBelt(e.target.value as BeltType)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-100 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                      >
+                        <option value="BRANCA">Faixa Branca</option>
+                        <option value="CINZA">Faixa Cinza</option>
+                        <option value="AMARELA">Faixa Amarela</option>
+                        <option value="LARANJA">Faixa Laranja</option>
+                        <option value="VERDE">Faixa Verde</option>
+                        <option value="AZUL">Faixa Azul</option>
+                        <option value="ROXA">Faixa Roxa</option>
+                        <option value="MARROM">Faixa Marrom</option>
+                        <option value="PRETA">Faixa Preta</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-slate-300 font-bold block mb-1">Graus Pretendidos (0 a 4)</label>
+                      <select
+                        value={reqStripes}
+                        onChange={e => setReqStripes(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-100 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                      >
+                        <option value={0}>0 Graus (Lisa)</option>
+                        <option value={1}>1º Grau</option>
+                        <option value={2}>2º Grau</option>
+                        <option value={3}>3º Grau</option>
+                        <option value={4}>4º Grau</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-slate-300 font-bold block mb-1">Motivo / Mensagem ao Professor</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Treino há 2 anos, alcancei a meta de aulas..."
+                      value={reqNotes}
+                      onChange={e => setReqNotes(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-slate-100 text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSendBeltRequest}
+                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md transition-all cursor-pointer"
                   >
-                    <optgroup label="Adulto">
-                      <option value="BRANCA">Faixa Branca</option>
-                      <option value="AZUL">Faixa Azul</option>
-                      <option value="ROXA">Faixa Roxa</option>
-                      <option value="MARROM">Faixa Marrom</option>
-                      <option value="PRETA">Faixa Preta</option>
-                      <option value="VERMELHA E PRETA">Faixa Coral (Vermelha e Preta)</option>
-                      <option value="VERMELHA E BRANCA">Faixa Coral (Vermelha e Branca)</option>
-                      <option value="VERMELHA">Faixa Vermelha (Grande Mestre)</option>
-                    </optgroup>
-                    <optgroup label="Infantil / Kids">
-                      <option value="CINZA">Faixa Cinza</option>
-                      <option value="AMARELA">Faixa Amarela</option>
-                      <option value="LARANJA">Faixa Laranja</option>
-                      <option value="VERDE">Faixa Verde</option>
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-300 font-bold block mb-1">Graus na Faixa (0 a 4)</label>
-                  <select
-                    value={formData.stripes ?? 0}
-                    onChange={e => setFormData({ ...formData, stripes: Number(e.target.value) })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
-                  >
-                    <option value={0}>0 Graus (Faixa Lisa)</option>
-                    <option value={1}>1º Grau</option>
-                    <option value={2}>2º Grau</option>
-                    <option value={3}>3º Grau</option>
-                    <option value={4}>4º Grau</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação</label>
-                  <input
-                    type="date"
-                    value={formData.lastGraduationDate || new Date().toISOString().split('T')[0]}
-                    onChange={e => setFormData({ ...formData, lastGraduationDate: e.target.value })}
-                    className="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
-                  />
+                    Enviar Solicitação de Graduação
+                  </button>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div>
+                    <h4 className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
+                      <Award className="w-4 h-4" />
+                      Graduação & Faixa do Atleta
+                    </h4>
+                    <p className="text-[10px] text-slate-400">Ajuste direto da faixa e graus do aluno (Acesso de Professor/Admin)</p>
+                  </div>
+                  <BeltBadge belt={formData.belt || 'BRANCA'} stripes={formData.stripes || 0} size="md" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">Faixa</label>
+                    <select
+                      value={formData.belt || 'BRANCA'}
+                      onChange={e => setFormData({ ...formData, belt: e.target.value as BeltType })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                    >
+                      <optgroup label="Adulto">
+                        <option value="BRANCA">Faixa Branca</option>
+                        <option value="AZUL">Faixa Azul</option>
+                        <option value="ROXA">Faixa Roxa</option>
+                        <option value="MARROM">Faixa Marrom</option>
+                        <option value="PRETA">Faixa Preta</option>
+                        <option value="VERMELHA E PRETA">Faixa Coral (Vermelha e Preta)</option>
+                        <option value="VERMELHA E BRANCA">Faixa Coral (Vermelha e Branca)</option>
+                        <option value="VERMELHA">Faixa Vermelha (Grande Mestre)</option>
+                      </optgroup>
+                      <optgroup label="Infantil / Kids">
+                        <option value="CINZA">Faixa Cinza</option>
+                        <option value="AMARELA">Faixa Amarela</option>
+                        <option value="LARANJA">Faixa Laranja</option>
+                        <option value="VERDE">Faixa Verde</option>
+                      </optgroup>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">Graus na Faixa (0 a 4)</label>
+                    <select
+                      value={formData.stripes ?? 0}
+                      onChange={e => setFormData({ ...formData, stripes: Number(e.target.value) })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none font-bold"
+                    >
+                      <option value={0}>0 Graus (Faixa Lisa)</option>
+                      <option value={1}>1º Grau</option>
+                      <option value={2}>2º Grau</option>
+                      <option value={3}>3º Grau</option>
+                      <option value={4}>4º Grau</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-amber-400 font-extrabold block mb-1">🗓️ Data da Graduação</label>
+                    <input
+                      type="date"
+                      value={formData.lastGraduationDate || new Date().toISOString().split('T')[0]}
+                      onChange={e => setFormData({ ...formData, lastGraduationDate: e.target.value })}
+                      className="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-slate-100 font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

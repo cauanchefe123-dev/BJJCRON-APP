@@ -32,9 +32,10 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
 
   const pendingRequests = beltRequests.filter(r => r.status === 'PENDING');
+  const canGraduate = currentUser?.role === 'ADMIN' || currentUser?.role === 'PROFESSOR';
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !canGraduate) {
       setIsSuccess(false);
       return;
     }
@@ -57,7 +58,7 @@ export const GraduationModal: React.FC<GraduationModalProps> = ({
     }
   }, [isOpen, studentToGraduate?.id]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !canGraduate) return null;
 
   const currentStudent = students.find(s => s.id === selectedStudentId) || studentToGraduate || students[0];
 
