@@ -4,14 +4,15 @@ import { BeltBadge } from '../belts/BeltBadge';
 import { useData } from '../../context/DataContext';
 import { DEFAULT_BLACK_GI_AVATAR, getStudentAvatar } from '../../constants/avatar';
 import { getTrainingTimeText } from '../../utils/trainingTime';
-import { ShieldCheck, QrCode, Download, Printer, Award, Calendar, CheckCircle, Hash, Clock, Edit3 } from 'lucide-react';
+import { ShieldCheck, QrCode, Download, Printer, Award, Calendar, CheckCircle, Hash, Clock, Edit3, UserCheck } from 'lucide-react';
 
 interface DigitalMembershipCardProps {
   student: Student;
   onOpenEditModal?: () => void;
+  onOpenCheckin?: () => void;
 }
 
-export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({ student, onOpenEditModal }) => {
+export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({ student, onOpenEditModal, onOpenCheckin }) => {
   const { academyConfig } = useData();
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +28,16 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({ st
           <p className="text-xs text-slate-400">Apresente seu QR Code no leitor da academia para registrar presença.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenCheckin && (
+            <button
+              onClick={onOpenCheckin}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              Bater Presença
+            </button>
+          )}
           {onOpenEditModal && (
             <button
               onClick={onOpenEditModal}

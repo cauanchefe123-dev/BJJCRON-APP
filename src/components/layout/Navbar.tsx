@@ -82,8 +82,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Daily Attendance Modal Button */}
-          {onOpenDailyAttendance && (
+          {/* Daily Attendance Modal Button for Teachers/Admins */}
+          {(currentUser?.role === 'PROFESSOR' || currentUser?.role === 'ADMIN') && onOpenDailyAttendance && (
             <button
               onClick={onOpenDailyAttendance}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-amber-400 font-bold text-xs border border-slate-700/60 transition-all active:scale-95 cursor-pointer"
@@ -92,6 +92,28 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Calendar className="w-4 h-4 text-amber-400" />
               <span className="hidden md:inline">Quem Treinou Hoje</span>
             </button>
+          )}
+
+          {/* Quick Checkin Button for Students */}
+          {currentUser?.role === 'ALUNO' && onOpenQuickScan && (
+            <>
+              {/* Mobile Icon-only Button */}
+              <button
+                onClick={onOpenQuickScan}
+                className="flex sm:hidden p-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-md transition-all active:scale-95 cursor-pointer"
+                title="Bater Frequência"
+              >
+                <UserCheck className="w-4 h-4" />
+              </button>
+              {/* Desktop Full Button */}
+              <button
+                onClick={onOpenQuickScan}
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4" />
+                Bater Frequência
+              </button>
+            </>
           )}
 
           {/* Quick Checkin Button for Professor/Admin */}

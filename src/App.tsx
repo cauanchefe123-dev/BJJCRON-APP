@@ -135,6 +135,7 @@ function MainApp() {
                       onNavigate={setActiveTab}
                       onOpenPixModal={handleOpenPixForId}
                       onOpenEditModal={handleOpenEditStudent}
+                      onOpenCheckin={() => setIsQuickCheckinOpen(true)}
                     />
                   )
                 )}
@@ -152,9 +153,18 @@ function MainApp() {
                 )}
 
                 {activeTab === 'attendance' && (
-                  <AttendanceManager
-                    onOpenCheckin={() => setIsQuickCheckinOpen(true)}
-                  />
+                  currentUser.role === 'ALUNO' ? (
+                    <StudentDashboard
+                      onNavigate={setActiveTab}
+                      onOpenPixModal={handleOpenPixForId}
+                      onOpenEditModal={handleOpenEditStudent}
+                      onOpenCheckin={() => setIsQuickCheckinOpen(true)}
+                    />
+                  ) : (
+                    <AttendanceManager
+                      onOpenCheckin={() => setIsQuickCheckinOpen(true)}
+                    />
+                  )
                 )}
 
                 {activeTab === 'academies' && (
@@ -183,6 +193,7 @@ function MainApp() {
                     <DigitalMembershipCard
                       student={selectedStudentCard || currentStudent}
                       onOpenEditModal={() => currentStudent && handleOpenEditStudent(currentStudent)}
+                      onOpenCheckin={() => setIsQuickCheckinOpen(true)}
                     />
                   </div>
                 )}

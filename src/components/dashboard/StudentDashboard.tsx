@@ -6,7 +6,7 @@ import { getStudentAvatar, resolveStudentForUser } from '../../constants/avatar'
 import { DigitalMembershipCard } from '../card/DigitalMembershipCard';
 import { getTrainingTimeText } from '../../utils/trainingTime';
 import { calculateRanking, getStudentTotalClasses } from '../../utils/ranking';
-import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play, Trophy } from 'lucide-react';
+import { Award, QrCode, CreditCard, BookOpen, Clock, Calendar, CheckCircle, AlertTriangle, ArrowRight, Flame, Sparkles, Edit3, Shield, Target, Video, Play, Trophy, UserCheck } from 'lucide-react';
 import { TechniqueVideoModal } from '../common/TechniqueVideoModal';
 import { BJJClass } from '../../types';
 
@@ -14,10 +14,11 @@ interface StudentDashboardProps {
   onNavigate: (tab: string) => void;
   onOpenPixModal?: (paymentId: string) => void;
   onOpenEditModal?: (student: any) => void;
+  onOpenCheckin?: () => void;
   selectedStudentId?: string;
 }
 
-export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onOpenPixModal, onOpenEditModal, selectedStudentId }) => {
+export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onOpenPixModal, onOpenEditModal, onOpenCheckin, selectedStudentId }) => {
   const { currentUser } = useAuth();
   const { students, payments, attendances, academyConfig, classes } = useData();
 
@@ -29,6 +30,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
     : resolved;
   const myPayments = payments.filter(p => p.studentId === currentStudent?.id);
   const myAttendances = attendances.filter(a => a.studentId === currentStudent?.id);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayAttendance = myAttendances.find(a => a.date === todayStr);
 
   const pendingPayment = myPayments.find(p => p.status === 'PENDENTE' || p.status === 'ATRASADO');
 
@@ -96,6 +100,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
           </div>
 
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
+            {onOpenCheckin && (
+              <button
+                onClick={onOpenCheckin}
+                className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4 shrink-0" />
+                <span className="truncate">Bater Frequência</span>
+              </button>
+            )}
             {onOpenEditModal && currentStudent && (
               <button
                 onClick={() => onOpenEditModal(currentStudent)}
@@ -116,7 +129,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
             )}
             <button
               onClick={() => onNavigate('card')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md transition-all active:scale-95"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-extrabold text-xs border border-slate-700 shadow-md transition-all active:scale-95"
             >
               <QrCode className="w-4 h-4 shrink-0" />
               <span className="truncate">Carteirinha</span>
@@ -136,6 +149,48 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, 
               <span className="truncate">Observações</span>
             </button>
           </div>
+        </div>
+
+        {/* Status de Frequência do Dia (Check-in do Atleta) */}
+        <div className="bg-slate-950/90 rounded-xl p-4 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-base shrink-0 ${
+              todayAttendance
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+                : 'bg-amber-500/20 border border-amber-500/40 text-amber-400 animate-pulse'
+            }`}>
+              {todayAttendance ? <CheckCircle className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-200">Frequência de Hoje ({todayStr.split('-').reverse().join('/')})</span>
+                {todayAttendance ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    ✓ PRESENÇA CONFIRMADA
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    NÃO REGISTRADA
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {todayAttendance
+                  ? `Você treinou na turma "${todayAttendance.className}" às ${todayAttendance.timestamp ? new Date(todayAttendance.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}. Bom treino!`
+                  : 'Não se esqueça de registrar seu check-in na aula de hoje para contabilizar suas graduações.'}
+              </p>
+            </div>
+          </div>
+
+          {!todayAttendance && onOpenCheckin && (
+            <button
+              onClick={onOpenCheckin}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+            >
+              <UserCheck className="w-4 h-4" />
+              Bater Presença Agora
+            </button>
+          )}
         </div>
 
         {/* Linked Academy Quick Banner */}
